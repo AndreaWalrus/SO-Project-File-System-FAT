@@ -3,6 +3,8 @@
 
 #pragma once
 
+// FAT structure size in buffer: BLOCKS_NUM * 4 + 4 bytes = BLOCKS_NUM+1 * 4 bytes
+
 struct FAT{
     int blocks[BLOCKS_NUM]; 
     unsigned int free_blocks; 
@@ -24,9 +26,9 @@ typedef struct FAT *FATEntry;
 typedef struct File *FileEntry;
 typedef struct FileHandle *FileHandler;
 
-int init_fat(FATEntry fat, char* buffer);
+FATEntry init_fat(char* buffer);
 int find_free_block(FATEntry fat);
-int allocate_block(FATEntry fat);
+int allocate_block(FATEntry fat, unsigned int start_block);
 int free_block(FATEntry fat, unsigned int block_index);
 
 int createFile(FileEntry file, const char* name);
