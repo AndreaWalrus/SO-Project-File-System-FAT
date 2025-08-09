@@ -1,20 +1,20 @@
 #include <stdio.h>
 #include "FAT_structures.h"
 
-FATEntry init_fat(char* buffer){
+int init_fat(char* buffer){
     if (buffer == NULL) {
         return -1;
     }
     FATEntry fat = (FATEntry)buffer;
-    for (int i = 0; i < BLOCKS_NUM; i++) {
+    for (int i = 0; i < BLOCKS_AVAILABLE; i++) {
         fat->blocks[i] = -1;
     }
-    fat->free_blocks = BLOCKS_NUM;
-    return fat;  
+    fat->free_blocks = BLOCKS_NUM-((int)(BLOCKS_NUM*4)/BLOCK_SIZE);
+    return 0;  
 }
 
 int find_free_block(FATEntry fat) {
-    for (int i = 0; i < BLOCKS_NUM; i++) {
+    for (int i = 0; i < BLOCKS_AVAILABLE; i++) {
         if (fat->blocks[i] == -1) {
             return i;
         }
@@ -40,4 +40,29 @@ int free_block(FATEntry fat, unsigned int block_index) {
     fat->blocks[block_index] = -1;
     fat->free_blocks++;
     return next_block;
+}
+
+int createFile(const char* name, char* buffer) {
+    if (buffer == NULL) {
+        return -1;
+    }
+    FATEntry fat = (FATEntry)buffer;
+    unsigned int start_block = find_free_block(fat);
+    if (start_block == -1) {
+        return -1;
+    }
+    FileEntry file = (FileEntry)(buffer + FAT_SIZE + (start_block * BLOCK_SIZE));
+    memcpy(file->name, name, 32);
+    file->start_block = start_block;
+    file->size = 0;
+    file->is_directory = 0;
+
+    fat->blocks[start_block] = BLOCKS_AVAILABLE;
+    fat->free_blocks--;
+    return 0;
+}
+
+int eraseFile(FileEntry file, char* buffer) {
+    
+    return 0;
 }
