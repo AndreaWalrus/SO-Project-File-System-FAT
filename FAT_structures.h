@@ -1,7 +1,7 @@
 #define BLOCK_SIZE 512 // Blocks of 512 bytes
 #define BLOCKS_NUM 1024 // Total number of blocks and FAT entries
 #define FAT_SIZE (int)(BLOCKS_NUM * 4) / BLOCK_SIZE // FAT size in blocks
-#define BLOCKS_AVAILABLE BLOCKS_NUM - FAT_SIZE // Number of blocks available for files
+#define BLOCKS_AVAILABLE BLOCKS_NUM - FAT_SIZE // Number of blocks available for files and directories
 
 #pragma once
 
@@ -14,6 +14,8 @@ struct FAT{
     int blocks[BLOCKS_AVAILABLE]; // -(BLOCKS_NUM*4)/BLOCK_SIZE to account for the first blocks reserved for the FAT itself
     unsigned int free_blocks;
 };
+
+// File structure size in buffer: 32 bytes for name + 4 bytes for start_block + 4 bytes for size + 1 byte for is_directory = 41 bytes
 
 struct File{
     char name[32];

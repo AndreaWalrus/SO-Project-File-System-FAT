@@ -62,7 +62,26 @@ int createFile(const char* name, char* buffer) {
     return 0;
 }
 
+void eraseFATChain(FATEntry fat, unsigned int start_block) {
+    unsigned int current_block = start_block;
+    while (current_block != -1) {
+        if(current_block == BLOCKS_AVAILABLE)
+            fat->blocks[current_block] = -1;
+            fat->free_blocks++;
+            break;
+        unsigned int next_block = fat->blocks[current_block];
+        fat->blocks[current_block] = -1;
+        fat->free_blocks++;
+        current_block = next_block;
+    }
+
+}
+
 int eraseFile(FileEntry file, char* buffer) {
-    
+    if(buffer == NULL || file == NULL) {
+        return -1;
+    }
+    FATEntry fat = (FATEntry)buffer;
+    eraseFATChain(fat, file->start_block);
     return 0;
 }
