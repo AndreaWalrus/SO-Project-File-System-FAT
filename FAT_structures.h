@@ -1,13 +1,18 @@
 #pragma once
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
+#include <errno.h>
+
 
 #define BLOCK_SIZE 512 // Blocks of 512 bytes
-#define BLOCKS_NUM 1024 // Total number of blocks and FAT entries
+#define BLOCKS_NUM 256 // Total number of blocks and FAT entries
 
 typedef int16_t fat_entry_t;
 
-#define FAT_SIZE (BLOCKS_NUM*sizeof(fat_entry_t)+BLOCK_SIZE-1) / BLOCK_SIZE // Number of blocks occupied by the FAT itself rounded up
+#define FAT_SIZE ((BLOCKS_NUM*sizeof(fat_entry_t)+BLOCK_SIZE-1) / BLOCK_SIZE) // Number of blocks occupied by the FAT itself rounded up
 #define BLOCKS_AVAILABLE (BLOCKS_NUM - FAT_SIZE) // Number of blocks available for files and directories
 
 #define FAT_FREE (fat_entry_t)-1 // Free block flag
@@ -23,21 +28,33 @@ struct File{
     uint8_t is_directory; // 1 if directory, 0 if file
 };
 
+typedef fat_entry_t *FATEntry;
+typedef struct File *FileEntry;
+
 struct FileHandle{
     FileEntry file;
     unsigned int position;
 };
 
-typedef fat_entry_t *FATEntry;
-typedef struct File *FileEntry;
-typedef struct FileHandle *FileHandler;
+typedef struct FileHandle *FileHandleEntry;
 
-int init_fat(char* buffer);
+FATEntry init_fat(char* buffer);
 fat_entry_t find_free_block(FATEntry fat);
 fat_entry_t allocate_block(FATEntry fat, fat_entry_t start_block);
 fat_entry_t free_block(FATEntry fat, fat_entry_t block_index);
+void eraseFATChain(FATEntry fat, fat_entry_t start_block);
 
-int createFile(const char* name, char* buffer);
+fat_entry_t createFile(const char* name, char* buffer);
 int eraseFile(FileEntry file, char* buffer);
+FileHandleEntry openFile(FileEntry file);
+int closeFile(FileHandleEntry handle);
+
+int write(FileHandleEntry handle, char* buffer, const void* data, size_t size);
+int read(FileHandleEntry handle, void* buffer, size_t size);
+
 
 int createDir(const char* name);
+
+// Testing functions
+void printFAT(FATEntry fat);
+void printFile(FileEntry file);

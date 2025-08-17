@@ -1,9 +1,0 @@
-CC=gcc
-LIBS=
-CFLAGS=-g
-
-$(CC) $(CFLAGS) $(LIBS) -o test test.c FAT_structures.h
-
-clean:
-	rm -f test
-	rm -f *.o

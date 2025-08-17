@@ -1,5 +1,8 @@
 test
 
+# VSCode settings
+.vscode/
+
 # Prerequisites
 *.d
 
