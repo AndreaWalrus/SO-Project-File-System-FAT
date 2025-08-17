@@ -27,6 +27,10 @@ fat_entry_t find_free_block(FATEntry fat) {
 }
 
 fat_entry_t allocate_block(FATEntry fat, fat_entry_t start_block) {
+    if(fat == NULL) {
+        fprintf(stderr, "FAT is NULL\n");
+        return -1;
+    }
     fat_entry_t next_block = find_free_block(fat);
     if (next_block == -1) {
         fprintf(stderr, "No free blocks available for allocation\n");
@@ -34,6 +38,22 @@ fat_entry_t allocate_block(FATEntry fat, fat_entry_t start_block) {
     }
     fat[start_block] = next_block;
     fat[next_block] = FAT_EOC;
+    return next_block;
+}
+
+fat_entry_t extend_chain(FATEntry fat, fat_entry_t start_block) {
+    if(fat == NULL) {
+        fprintf(stderr, "FAT is NULL\n");
+        return -1;
+    }
+    while(fat[start_block] != FAT_EOC) {
+        if(fat[start_block] == FAT_RSVD || fat[start_block] == FAT_FREE) {
+            fprintf(stderr, "Invalid block in chain\n");
+            return -1;
+        }
+        start_block = fat[start_block];
+    }
+    fat_entry_t next_block = allocate_block(fat, start_block);
     return next_block;
 }
 
@@ -131,24 +151,46 @@ int write(FileHandleEntry handle, char* buffer, const void* data, size_t size) {
         return -1;
     }
     if(handle->position < BLOCK_SIZE){ // Cursor is within the first block
-        if(handle->position + file_size < BLOCK_SIZE){ // Data fits in the first block
+        if((handle->position%BLOCK_SIZE) + file_size < BLOCK_SIZE){ // Data fits in the first block
             unsigned int offset = (handle->file->start_block * BLOCK_SIZE) + handle->position;
             memcpy(buffer + offset, data, size);
             handle->position += size;
             handle->file->size += size;
             return size;
         }
-        if(handle->position + file_size >= BLOCK_SIZE){ // Data does not fit in the first block
+        if((handle->position%BLOCK_SIZE) + file_size >= BLOCK_SIZE){ // Data does not fit in the first block
             int i=0;
             FATEntry fat = (FATEntry)buffer;
-            while((i*BLOCK_SIZE)-handle->position < size){
+            while((i*BLOCK_SIZE)-handle->position < size){ // Extend the file chain to contain the data
                 fat_entry_t next_block = allocate_block(fat, handle->file->start_block);
                 if (next_block == -1) {
                     fprintf(stderr, "Failed to allocate new block for writing\n");
                     return -1;
                 }
-                
+                fat_entry_t new_block = extend_chain(fat, handle->file->start_block);
+                i++;
             }
+            unsigned int written = 0;
+            fat_entry_t current_block = handle->file->start_block;
+            while(written < size){
+                unsigned int block_offset = (int)(handle->position / BLOCK_SIZE)+1;
+                unsigned int to_write = 0;
+                if(size-written>BLOCK_SIZE)
+                    to_write = (BLOCK_SIZE*block_offset) - handle->position;
+                else
+                    to_write = size - written;
+                unsigned int offset = (current_block * (fat_entry_t)BLOCK_SIZE) + (handle->position%BLOCK_SIZE);
+                memcpy(buffer + offset, (char*)data + written, to_write);
+                handle->position += to_write;
+                written += to_write;
+                handle->file->size += to_write;
+                current_block = fat[current_block];
+                if(current_block == FAT_RSVD) {
+                    fprintf(stderr, "Block reserved\n");
+                    return -1;
+                }
+            }
+
         }
     }
 }

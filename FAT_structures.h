@@ -42,6 +42,7 @@ FATEntry init_fat(char* buffer);
 fat_entry_t find_free_block(FATEntry fat);
 fat_entry_t allocate_block(FATEntry fat, fat_entry_t start_block);
 fat_entry_t free_block(FATEntry fat, fat_entry_t block_index);
+fat_entry_t extend_chain(FATEntry fat, fat_entry_t start_block);
 void eraseFATChain(FATEntry fat, fat_entry_t start_block);
 
 fat_entry_t createFile(const char* name, char* buffer);
