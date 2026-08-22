@@ -20,6 +20,7 @@ typedef int16_t fat_entry_t;
 #define FAT_RSVD (fat_entry_t)-3 // Reserved blocks for the FAT itself
 
 // File structure size in buffer: 32 bytes for name + 4 bytes for start_block + 4 bytes for size + 1 byte for is_directory + 3 bytes of padding = 44 bytes
+#define FILE_SIZE 44
 
 struct File{
     char name[32];

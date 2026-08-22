@@ -26,6 +26,8 @@ fat_entry_t find_free_block(FATEntry fat) {
     return -1;
 }
 
+
+// TO BE RECHECKED
 fat_entry_t allocate_block(FATEntry fat, fat_entry_t start_block) {
     if(fat == NULL) {
         fprintf(stderr, "FAT is NULL\n");
@@ -67,6 +69,23 @@ fat_entry_t free_block(FATEntry fat, fat_entry_t block_index) {
     return next_block;
 }
 
+void erase_chain(FATEntry fat, fat_entry_t start_block) {
+    if (start_block < 0 || start_block >= BLOCKS_NUM) {
+        fprintf(stderr, "Invalid start block index\n");
+        return;
+    }
+    while (fat[start_block] != FAT_EOC ) {
+        if(fat[start_block] == FAT_RSVD)
+            return;
+        fat_entry_t next_block = fat[start_block];
+        fat[start_block] = FAT_FREE;
+        start_block = next_block;
+    }
+    if(fat[start_block] == FAT_RSVD || fat[start_block] == FAT_FREE)
+            return;
+    fat[start_block] = FAT_FREE;
+}
+
 fat_entry_t createFile(const char* name, char* buffer) {
     if (buffer == NULL) {
         fprintf(stderr, "Buffer is NULL\n");
@@ -89,30 +108,17 @@ fat_entry_t createFile(const char* name, char* buffer) {
     return start_block;
 }
 
-void eraseFATChain(FATEntry fat, fat_entry_t start_block) {
-    if (start_block < 0 || start_block >= BLOCKS_NUM) {
-        fprintf(stderr, "Invalid start block index\n");
-        return;
-    }
-    while (fat[start_block] != FAT_EOC ) {
-        if(fat[start_block] == FAT_RSVD)
-            return;
-        fat_entry_t next_block = fat[start_block];
-        fat[start_block] = FAT_FREE;
-        start_block = next_block;
-    }
-    if(fat[start_block] == FAT_RSVD || fat[start_block] == FAT_FREE)
-            return;
-    fat[start_block] = FAT_FREE;
-}
-
 int eraseFile(FileEntry file, char* buffer) {
     if(buffer == NULL || file == NULL) {
         fprintf(stderr, "Buffer or file is NULL\n");
         return -1;
     }
     FATEntry fat = (FATEntry)buffer;
-    eraseFATChain(fat, file->start_block);
+    fat_entry_t start_block = file->start_block;
+    erase_chain(fat, start_block);
+    unsigned int offset = (int) start_block * BLOCK_SIZE;
+    memset(buffer+offset,0,FILE_SIZE);
+    file = NULL;
     return 0;
 }
 
