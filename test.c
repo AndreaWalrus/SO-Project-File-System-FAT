@@ -22,19 +22,19 @@ int main(int argc, char *argv[]) {
     printFAT(fat);
     printf("Free block: %hd\n", find_free_block(fat)); */
     printFAT(fat);
-    fat_entry_t block = createFile("pippo\0", buffer);
-    if (block != -1) {
-        printf("File 'pippo' created at block: %hd\n", block);
+    int entry = createFile("pippo\0", buffer);
+    int offset = (FAT_SIZE*BLOCK_SIZE)+(entry*FILE_ENTRY_SIZE);
+    FileEntry file = (FileEntry)(buffer + offset);
+    if (file->start_block != -1) {
+        printf("File 'pippo' created at block: %hd\n", file->start_block);
     } else {
         printf("Failed to create file 'pippo'\n");
     }
 
+    //int entry = findFile("pippo\0", buffer);
     printFAT(fat);
 
-    int entry = find_file("pippo\0", buffer);
-
-    int offset = (FAT_SIZE*BLOCK_SIZE)+(entry*FILE_ENTRY_SIZE);
-    FileEntry file = (FileEntry)(buffer + offset);
+    
     printFile(file);
     eraseFile(file, buffer);
 

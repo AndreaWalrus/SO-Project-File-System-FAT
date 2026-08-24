@@ -31,7 +31,6 @@ fat_entry_t find_free_block(FATEntry fat) {
 }
 
 
-// TO BE RECHECKED
 fat_entry_t allocate_block(FATEntry fat, fat_entry_t start_block) {
     if(fat == NULL) {
         fprintf(stderr, "FAT is NULL\n");
@@ -81,46 +80,35 @@ fat_entry_t free_block(FATEntry fat, fat_entry_t block_index) {
     return next_block;
 }
 
-void erase_chain(FATEntry fat, fat_entry_t start_block) {
+int erase_chain(FATEntry fat, fat_entry_t start_block) {
     if (start_block < 0 || start_block >= BLOCKS_NUM) {
         fprintf(stderr, "Invalid start block index\n");
-        return;
+        return -1;
     }
+    if(fat == NULL) {
+        fprintf(stderr, "FAT is NULL\n");
+        return -1;
+    }
+    int i=0;
     while (fat[start_block] != FAT_EOC ) {
         if(fat[start_block] == FAT_RSVD)
             fprintf(stderr, "Block Reserved\n");
-            return;
+            return -1;
         fat_entry_t next_block = fat[start_block];
         fat[start_block] = FAT_FREE;
         start_block = next_block;
+        i++;
     }
-    if(fat[start_block] == FAT_RSVD || fat[start_block] == FAT_FREE)
+    if(fat[start_block] == FAT_RSVD || fat[start_block] == FAT_FREE){
             fprintf(stderr, "Block Reserved or free\n");
-            return;
+            return -1;
+    }
     fat[start_block] = FAT_FREE;
+    i++;
+    return i;
 }
 
-int find_file(const char* name, char* buffer){
-    if (buffer == NULL) {
-        fprintf(stderr, "Buffer is NULL\n");
-        return -1;
-    }
-    if (name == NULL) {
-        fprintf(stderr, "Name is NULL\n");
-        return -1;
-    }
-    for(int i=0;i<BLOCKS_NUM;i++){
-        FileEntry file = (FileEntry) (buffer+(FAT_SIZE*BLOCK_SIZE)+(i*FILE_ENTRY_SIZE));
-        if(strcmp(file->name, name)==0){
-            printf("File found at entry %d\n", i);
-            return i;
-        }
-    }
-    printf("File not found\n");
-    return -1;
-}
-
-fat_entry_t createFile(const char* name, char* buffer) {
+int createFile(const char* name, char* buffer) {
     if (buffer == NULL) {
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
@@ -133,11 +121,13 @@ fat_entry_t createFile(const char* name, char* buffer) {
     }
 
     FileEntry file;
+    int pos;
     // Finds the first available FileEntry in buffer
     for(int i = 0; i<BLOCKS_NUM; i++){
         file = (FileEntry) (buffer+(FAT_SIZE*BLOCK_SIZE)+(i*FILE_ENTRY_SIZE));
         if(file->is_used==0){
             printf("Found available entry at position %d\n", i);
+            pos=i;
             break;
         }
     }
@@ -149,10 +139,9 @@ fat_entry_t createFile(const char* name, char* buffer) {
     file->is_used = 1;
 
     fat[start_block] = FAT_EOC;
-    return start_block;
+    return pos;
 }
 
-// TO BE CHECKED
 int eraseFile(FileEntry file, char* buffer) {
     if(buffer == NULL || file == NULL) {
         fprintf(stderr, "Buffer or file is NULL\n");
@@ -160,7 +149,8 @@ int eraseFile(FileEntry file, char* buffer) {
     }
     FATEntry fat = (FATEntry)buffer;
     fat_entry_t start_block = file->start_block;
-    erase_chain(fat, start_block);
+    int erased = erase_chain(fat, start_block);
+    printf("Erased %d blocks\n", erased);
     unsigned int offset = (int) start_block * BLOCK_SIZE;
     memset(buffer+offset,0,file->size);
     file = NULL;
@@ -185,6 +175,26 @@ int closeFile(FileHandleEntry handle) {
     }
     free(handle);
     return 0;
+}
+
+int findFile(const char* name, char* buffer){
+    if (buffer == NULL) {
+        fprintf(stderr, "Buffer is NULL\n");
+        return -1;
+    }
+    if (name == NULL) {
+        fprintf(stderr, "Name is NULL\n");
+        return -1;
+    }
+    for(int i=0;i<BLOCKS_NUM;i++){
+        FileEntry file = (FileEntry) (buffer+(FAT_SIZE*BLOCK_SIZE)+(i*FILE_ENTRY_SIZE));
+        if(strcmp(file->name, name)==0){
+            printf("File found at entry %d\n", i);
+            return i;
+        }
+    }
+    printf("File not found\n");
+    return -1;
 }
 
 int write(FileHandleEntry handle, char* buffer, const void* data, size_t size) {
@@ -261,10 +271,11 @@ void printFAT(FATEntry fat) {
         fprintf(stderr, "FAT is NULL\n");
         return;
     }
-    printf("FAT Entries:\n");
+    printf("-----------------\nFAT Entries:\n");
     for (int i = 0; i < BLOCKS_NUM; i++) {
         printf("[%d]: %d\n", i, fat[i]);
     }
+    printf("-----------------\n");
 }
 
 void printFile(FileEntry file){
@@ -272,9 +283,9 @@ void printFile(FileEntry file){
         fprintf(stderr, "File is NULL\n");
         return;
     }
-    printf("File Name: %s\n", file->name);
+    printf("-----------------\nFile Name: %s\n", file->name);
     printf("Start Block: %hd\n", file->start_block);
     printf("Size: %u bytes\n", file->size);
     printf("Is Directory: %s\n", file->is_directory ? "Yes" : "No");
-    printf("Is used: %s\n", file->is_used ? "Yes" : "No");
+    printf("Is used: %s\n-----------------\n", file->is_used ? "Yes" : "No");
 }

@@ -41,18 +41,18 @@ struct FileHandle{
 
 typedef struct FileHandle *FileHandleEntry;
 
-FATEntry init_fat(char* buffer);
-fat_entry_t find_free_block(FATEntry fat);
-fat_entry_t allocate_block(FATEntry fat, fat_entry_t start_block);
-fat_entry_t free_block(FATEntry fat, fat_entry_t block_index);
-fat_entry_t extend_chain(FATEntry fat, fat_entry_t start_block);
-void eraseFATChain(FATEntry fat, fat_entry_t start_block);
+FATEntry init_fat(char* buffer); // Initializes the FAT and the FileEntry Directory
+fat_entry_t find_free_block(FATEntry fat); // Scans the FAT for the first available free block
+fat_entry_t allocate_block(FATEntry fat, fat_entry_t start_block); // Allocate a single block of the FAT
+fat_entry_t free_block(FATEntry fat, fat_entry_t block_index); // Frees a single block of the FAT
+fat_entry_t extend_chain(FATEntry fat, fat_entry_t start_block); // Adds a block to the end of the chain
+int erase_Chain(FATEntry fat, fat_entry_t start_block); // Removes the entire chain, returns the number of blocks erased
 
-fat_entry_t createFile(const char* name, char* buffer);
+int createFile(const char* name, char* buffer); // Create a file on the first available file entry and free block, returns index of the file entry list
 int eraseFile(FileEntry file, char* buffer);
 FileHandleEntry openFile(FileEntry file);
 int closeFile(FileHandleEntry handle);
-int find_file(const char* name, char* buffer);
+int findFile(const char* name, char* buffer);
 
 int write(FileHandleEntry handle, char* buffer, const void* data, size_t size);
 int read(FileHandleEntry handle, void* buffer, size_t size);
