@@ -8,25 +8,27 @@
 
 
 #define BLOCK_SIZE 512 // Blocks of 512 bytes
-#define BLOCKS_NUM 256 // Total number of blocks and FAT entries
+#define BLOCKS_NUM 16 // Total number of blocks and FAT entries
 
 typedef int16_t fat_entry_t;
 
+// File structure size in buffer: 48 bytes for name + 2 bytes for start_block + 4 bytes for size + 1 byte for is_directory + 1 for is_used + 8 bytes of padding = 64 bytes
+#define FILE_ENTRY_SIZE 64
+
 #define FAT_SIZE ((BLOCKS_NUM*sizeof(fat_entry_t)+BLOCK_SIZE-1) / BLOCK_SIZE) // Number of blocks occupied by the FAT itself rounded up
+#define FILE_ENTRY_BLOCKS ((BLOCKS_NUM*FILE_ENTRY_SIZE) / BLOCK_SIZE) // Number of blocks occupied by the FileEntries, fixed amount based on the number of blocks
 #define BLOCKS_AVAILABLE (BLOCKS_NUM - FAT_SIZE) // Number of blocks available for files and directories
 
 #define FAT_FREE (fat_entry_t)-1 // Free block flag
 #define FAT_EOC  (fat_entry_t)-2 // End of chain flag
 #define FAT_RSVD (fat_entry_t)-3 // Reserved blocks for the FAT itself
 
-// File structure size in buffer: 32 bytes for name + 4 bytes for start_block + 4 bytes for size + 1 byte for is_directory + 3 bytes of padding = 44 bytes
-#define FILE_SIZE 44
-
 struct File{
-    char name[32];
+    char name[48];
     fat_entry_t start_block; 
     unsigned int size; // in bytes
     uint8_t is_directory; // 1 if directory, 0 if file
+    uint8_t is_used; // 1 if yes, 0 otherwise
 };
 
 typedef fat_entry_t *FATEntry;
@@ -50,6 +52,7 @@ fat_entry_t createFile(const char* name, char* buffer);
 int eraseFile(FileEntry file, char* buffer);
 FileHandleEntry openFile(FileEntry file);
 int closeFile(FileHandleEntry handle);
+int find_file(const char* name, char* buffer);
 
 int write(FileHandleEntry handle, char* buffer, const void* data, size_t size);
 int read(FileHandleEntry handle, void* buffer, size_t size);

@@ -7,11 +7,15 @@ FATEntry init_fat(char* buffer){
         return NULL;
     }
     FATEntry fat = (FATEntry)buffer;
-    for (int i = 0; i < FAT_SIZE; i++) {
-        fat[i] = FAT_RSVD; // Set the first blocks of the FAT to reserved for the FAT itself
+    for (int i = 0; i < FAT_SIZE+FILE_ENTRY_BLOCKS; i++) {
+        fat[i] = FAT_RSVD; // Set the first blocks of the FAT to reserved for the FAT itself and the File Entries
     }
-    for (int i = FAT_SIZE; i < BLOCKS_NUM; i++) {
+    for (int i = FAT_SIZE+FILE_ENTRY_BLOCKS; i < BLOCKS_NUM; i++) {
         fat[i] = FAT_FREE; // Set all the remaining blocks as free
+    }
+    for(int i = 0; i<BLOCKS_NUM; i++){
+        FileEntry file = (FileEntry) (buffer+(FAT_SIZE*BLOCK_SIZE)+(i*64));
+        file->is_used=0; // Inizialize all the file entries as unused
     }
     return fat;  
 }
@@ -31,6 +35,10 @@ fat_entry_t find_free_block(FATEntry fat) {
 fat_entry_t allocate_block(FATEntry fat, fat_entry_t start_block) {
     if(fat == NULL) {
         fprintf(stderr, "FAT is NULL\n");
+        return -1;
+    }
+    if(start_block < (fat_entry_t)0 || start_block >= (fat_entry_t)BLOCKS_NUM){
+        fprintf(stderr, "Start block invalid\n");
         return -1;
     }
     fat_entry_t next_block = find_free_block(fat);
@@ -60,7 +68,11 @@ fat_entry_t extend_chain(FATEntry fat, fat_entry_t start_block) {
 }
 
 fat_entry_t free_block(FATEntry fat, fat_entry_t block_index) {
-    if (block_index >= (fat_entry_t)BLOCKS_NUM || fat[block_index] == FAT_FREE || fat[block_index] == FAT_RSVD) {
+    if(fat == NULL){
+        fprintf(stderr, "FAT is NULL\n");
+        return -1;
+    }
+    if (block_index < (fat_entry_t)0 || block_index >= (fat_entry_t)BLOCKS_NUM || fat[block_index] == FAT_FREE || fat[block_index] == FAT_RSVD) {
         fprintf(stderr, "Invalid block index or block already free/reserved\n");
         return -1; 
     }
@@ -76,14 +88,36 @@ void erase_chain(FATEntry fat, fat_entry_t start_block) {
     }
     while (fat[start_block] != FAT_EOC ) {
         if(fat[start_block] == FAT_RSVD)
+            fprintf(stderr, "Block Reserved\n");
             return;
         fat_entry_t next_block = fat[start_block];
         fat[start_block] = FAT_FREE;
         start_block = next_block;
     }
     if(fat[start_block] == FAT_RSVD || fat[start_block] == FAT_FREE)
+            fprintf(stderr, "Block Reserved or free\n");
             return;
     fat[start_block] = FAT_FREE;
+}
+
+int find_file(const char* name, char* buffer){
+    if (buffer == NULL) {
+        fprintf(stderr, "Buffer is NULL\n");
+        return -1;
+    }
+    if (name == NULL) {
+        fprintf(stderr, "Name is NULL\n");
+        return -1;
+    }
+    for(int i=0;i<BLOCKS_NUM;i++){
+        FileEntry file = (FileEntry) (buffer+(FAT_SIZE*BLOCK_SIZE)+(i*FILE_ENTRY_SIZE));
+        if(strcmp(file->name, name)==0){
+            printf("File found at entry %d\n", i);
+            return i;
+        }
+    }
+    printf("File not found\n");
+    return -1;
 }
 
 fat_entry_t createFile(const char* name, char* buffer) {
@@ -97,17 +131,28 @@ fat_entry_t createFile(const char* name, char* buffer) {
         fprintf(stderr, "No free blocks available for file creation\n");
         return -1;
     }
-    unsigned int offset = (int) start_block * BLOCK_SIZE;
-    FileEntry file = (FileEntry)(buffer + offset);
-    memcpy(file->name, name, 32);
+
+    FileEntry file;
+    // Finds the first available FileEntry in buffer
+    for(int i = 0; i<BLOCKS_NUM; i++){
+        file = (FileEntry) (buffer+(FAT_SIZE*BLOCK_SIZE)+(i*FILE_ENTRY_SIZE));
+        if(file->is_used==0){
+            printf("Found available entry at position %d\n", i);
+            break;
+        }
+    }
+
+    memcpy(file->name, name, 48);
     file->start_block = start_block;
-    file->size = sizeof(struct File);
+    file->size = 0;
     file->is_directory = 0;
+    file->is_used = 1;
 
     fat[start_block] = FAT_EOC;
     return start_block;
 }
 
+// TO BE CHECKED
 int eraseFile(FileEntry file, char* buffer) {
     if(buffer == NULL || file == NULL) {
         fprintf(stderr, "Buffer or file is NULL\n");
@@ -117,7 +162,7 @@ int eraseFile(FileEntry file, char* buffer) {
     fat_entry_t start_block = file->start_block;
     erase_chain(fat, start_block);
     unsigned int offset = (int) start_block * BLOCK_SIZE;
-    memset(buffer+offset,0,FILE_SIZE);
+    memset(buffer+offset,0,file->size);
     file = NULL;
     return 0;
 }
@@ -150,6 +195,14 @@ int write(FileHandleEntry handle, char* buffer, const void* data, size_t size) {
     if(handle->file == NULL) {
         fprintf(stderr, "File in handle is NULL\n");
         return -1; 
+    }
+    if(buffer == NULL){
+        fprintf(stderr, "Buffer is NULL\n");
+        return -1;
+    }
+    if(size <= 0){
+        fprintf(stderr, "size error\n");
+        return -1;
     }
     unsigned int file_size = handle->file->size - sizeof(struct File); // Bytes used for file data
     if(handle->position < sizeof(struct File)) {
@@ -223,4 +276,5 @@ void printFile(FileEntry file){
     printf("Start Block: %hd\n", file->start_block);
     printf("Size: %u bytes\n", file->size);
     printf("Is Directory: %s\n", file->is_directory ? "Yes" : "No");
+    printf("Is used: %s\n", file->is_used ? "Yes" : "No");
 }

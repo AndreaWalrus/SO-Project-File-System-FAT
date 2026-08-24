@@ -12,16 +12,17 @@ int main(int argc, char *argv[]) {
     // Initialize the FAT structure
 
     FATEntry fat = init_fat(buffer);
-
+    printf("FAT Size: %ld\n", FAT_SIZE);
+    printf("File Entries Size: %d\n", FILE_ENTRY_BLOCKS);
     printf("Free block: %hd\n", find_free_block(fat));
 
-    fat[1]= FAT_EOC;
-    fat_entry_t block = allocate_block(fat, 1);
-    block = allocate_block(fat, 2);
+/*     fat[FAT_SIZE+FILE_ENTRY_BLOCKS]= FAT_EOC;
+    fat_entry_t block = allocate_block(fat, FAT_SIZE+FILE_ENTRY_BLOCKS);
+    block = allocate_block(fat, FAT_SIZE+FILE_ENTRY_BLOCKS+1);
     printFAT(fat);
-    printf("Free block: %hd\n", find_free_block(fat));
-
-    block = createFile("pippo", buffer);
+    printf("Free block: %hd\n", find_free_block(fat)); */
+    printFAT(fat);
+    fat_entry_t block = createFile("pippo\0", buffer);
     if (block != -1) {
         printf("File 'pippo' created at block: %hd\n", block);
     } else {
@@ -30,15 +31,22 @@ int main(int argc, char *argv[]) {
 
     printFAT(fat);
 
-    int offset = block * BLOCK_SIZE;
+    int entry = find_file("pippo\0", buffer);
+
+    int offset = (FAT_SIZE*BLOCK_SIZE)+(entry*FILE_ENTRY_SIZE);
     FileEntry file = (FileEntry)(buffer + offset);
     printFile(file);
     eraseFile(file, buffer);
 
     printFAT(fat);
     
+    //Cleanup
 
-
+    munmap(buffer, BLOCK_SIZE * BLOCKS_NUM);
+    if(errno){
+        fprintf(stderr, "munmap error");
+        return -1;
+    }
 
 
     return 0;
