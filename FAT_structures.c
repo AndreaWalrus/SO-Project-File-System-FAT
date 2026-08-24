@@ -124,7 +124,7 @@ int createFile(const char* name, char* buffer) {
     int pos;
     // Finds the first available FileEntry in buffer
     for(int i = 0; i<BLOCKS_NUM; i++){
-        file = (FileEntry) (buffer+(FAT_SIZE*BLOCK_SIZE)+(i*FILE_ENTRY_SIZE));
+        file = (FileEntry) (buffer+getOffset(i));
         if(file->is_used==0){
             printf("Found available entry at position %d\n", i);
             pos=i;
@@ -137,24 +137,55 @@ int createFile(const char* name, char* buffer) {
     file->size = 0;
     file->is_directory = 0;
     file->is_used = 1;
+    file->file_index = pos;
 
     fat[start_block] = FAT_EOC;
     return pos;
 }
 
-int eraseFile(FileEntry file, char* buffer) {
-    if(buffer == NULL || file == NULL) {
-        fprintf(stderr, "Buffer or file is NULL\n");
+int eraseFile(int file_index, char* buffer) {
+    if(buffer == NULL) {
+        fprintf(stderr, "Buffer is NULL\n");
+        return -1;
+    }
+    if(file_index<0 || file_index>BLOCKS_NUM){
+        fprintf(stderr, "Index out of bound\n");
         return -1;
     }
     FATEntry fat = (FATEntry)buffer;
+    FileEntry file = getFileEntry(file_index, buffer);
     fat_entry_t start_block = file->start_block;
     int erased = erase_chain(fat, start_block);
     printf("Erased %d blocks\n", erased);
     unsigned int offset = (int) start_block * BLOCK_SIZE;
     memset(buffer+offset,0,file->size);
+    file->is_used=0;
     file = NULL;
     return 0;
+}
+
+int getOffset(unsigned int file_index){
+    return (FAT_SIZE*BLOCK_SIZE)+(file_index*FILE_ENTRY_SIZE);
+}
+
+int getIndex(FileEntry file){
+    if(file==NULL){
+        fprintf(stderr, "File is NULL\n");
+        return -1;
+    }
+    return file->file_index;
+}
+
+FileEntry getFileEntry(unsigned int file_index, char* buffer){
+    if(file_index>BLOCKS_NUM){
+        fprintf(stderr, "Index out of range\n");
+        return NULL;
+    }
+    if(buffer==NULL){
+        fprintf(stderr, "buffer is NULL\n");
+        return NULL;
+    }
+    return (FileEntry) (buffer+getOffset(file_index));
 }
 
 FileHandleEntry openFile(FileEntry file) {
@@ -162,10 +193,16 @@ FileHandleEntry openFile(FileEntry file) {
         fprintf(stderr, "File is NULL\n");
         return NULL;
     }
-    FileHandleEntry handle = (FileHandleEntry)malloc(sizeof(struct FileHandle));
-    handle->file = file;
-    handle->position = sizeof(struct File); // Start after the file metadata
-    return handle;
+    for(int i=0; i<BLOCKS_NUM; i++){
+        if(!FileHandleTable[i].is_used){
+            FileHandleTable[i].file_index=getIndex(file);
+            FileHandleTable[i].position=0;
+            FileHandleTable[i].is_used=1;
+            return &FileHandleTable[i];
+        }
+    }
+    fprintf(stderr, "Max number of Files opened\n");
+    return NULL;
 }
 
 int closeFile(FileHandleEntry handle) {
@@ -173,7 +210,13 @@ int closeFile(FileHandleEntry handle) {
         fprintf(stderr, "Handle is NULL\n");
         return -1;
     }
-    free(handle);
+    if(!handle->is_used){
+        fprintf(stderr, "Handle not in use\n");
+        return -1;
+    }
+    handle->file_index = -1;
+    handle->position = 0;
+    handle->is_used = 0;
     return 0;
 }
 
@@ -197,7 +240,7 @@ int findFile(const char* name, char* buffer){
     return -1;
 }
 
-int write(FileHandleEntry handle, char* buffer, const void* data, size_t size) {
+/* int write(FileHandleEntry handle, char* buffer, const void* data, size_t size) {
     if(handle == NULL || data == NULL) {
         fprintf(stderr, "Handle or data is NULL\n");
         return -1;
@@ -262,7 +305,7 @@ int write(FileHandleEntry handle, char* buffer, const void* data, size_t size) {
 
         }
     }
-}
+} */
 
 // Testing functions
 
@@ -287,5 +330,6 @@ void printFile(FileEntry file){
     printf("Start Block: %hd\n", file->start_block);
     printf("Size: %u bytes\n", file->size);
     printf("Is Directory: %s\n", file->is_directory ? "Yes" : "No");
-    printf("Is used: %s\n-----------------\n", file->is_used ? "Yes" : "No");
+    printf("Is used: %s\n", file->is_used ? "Yes" : "No");
+    printf("File index: %d\n-----------------\n", file->file_index);
 }

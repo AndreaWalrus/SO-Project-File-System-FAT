@@ -12,7 +12,7 @@
 
 typedef int16_t fat_entry_t;
 
-// File structure size in buffer: 48 bytes for name + 2 bytes for start_block + 4 bytes for size + 1 byte for is_directory + 1 for is_used + 8 bytes of padding = 64 bytes
+// File structure size in buffer: 48 bytes for name + 2 bytes for start_block + 4 bytes for size + 1 byte for is_directory + 1 for is_used + 4 bytes for file_index + 4 bytes of padding = 64 bytes
 #define FILE_ENTRY_SIZE 64
 
 #define FAT_SIZE ((BLOCKS_NUM*sizeof(fat_entry_t)+BLOCK_SIZE-1) / BLOCK_SIZE) // Number of blocks occupied by the FAT itself rounded up
@@ -29,17 +29,20 @@ struct File{
     unsigned int size; // in bytes
     uint8_t is_directory; // 1 if directory, 0 if file
     uint8_t is_used; // 1 if yes, 0 otherwise
+    unsigned int file_index; // index of the file in the FileEntries list
 };
 
 typedef fat_entry_t *FATEntry;
 typedef struct File *FileEntry;
 
 struct FileHandle{
-    FileEntry file;
-    unsigned int position;
+    unsigned int file_index; // Index position of the opened file in the FileEntries list
+    unsigned int position; // Cursor position
+    uint8_t is_used; // 1 if yes, 0 otherwise
 };
 
 typedef struct FileHandle *FileHandleEntry;
+static struct FileHandle FileHandleTable[BLOCKS_NUM];
 
 FATEntry init_fat(char* buffer); // Initializes the FAT and the FileEntry Directory
 fat_entry_t find_free_block(FATEntry fat); // Scans the FAT for the first available free block
@@ -49,7 +52,10 @@ fat_entry_t extend_chain(FATEntry fat, fat_entry_t start_block); // Adds a block
 int erase_Chain(FATEntry fat, fat_entry_t start_block); // Removes the entire chain, returns the number of blocks erased
 
 int createFile(const char* name, char* buffer); // Create a file on the first available file entry and free block, returns index of the file entry list
-int eraseFile(FileEntry file, char* buffer);
+int eraseFile(int file_index, char* buffer);
+int getOffset(unsigned int file_index);
+int getIndex(FileEntry file);
+FileEntry getFileEntry(unsigned int file_index, char* buffer);
 FileHandleEntry openFile(FileEntry file);
 int closeFile(FileHandleEntry handle);
 int findFile(const char* name, char* buffer);

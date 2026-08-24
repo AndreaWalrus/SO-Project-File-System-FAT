@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
     printf("Free block: %hd\n", find_free_block(fat)); */
     printFAT(fat);
     int entry = createFile("pippo\0", buffer);
-    int offset = (FAT_SIZE*BLOCK_SIZE)+(entry*FILE_ENTRY_SIZE);
+    int offset = getOffset(entry);
     FileEntry file = (FileEntry)(buffer + offset);
     if (file->start_block != -1) {
         printf("File 'pippo' created at block: %hd\n", file->start_block);
@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 
     
     printFile(file);
-    eraseFile(file, buffer);
+    eraseFile(getIndex(file), buffer);
 
     printFAT(fat);
     
