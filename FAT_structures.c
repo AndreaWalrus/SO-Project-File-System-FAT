@@ -50,7 +50,7 @@ fat_entry_t allocate_block(FATEntry fat, fat_entry_t start_block) {
     return next_block;
 }
 
-fat_entry_t extend_chain(FATEntry fat, fat_entry_t start_block) {
+fat_entry_t extend_chain(FATEntry fat, fat_entry_t start_block, unsigned int block_num) {
     if(fat == NULL) {
         fprintf(stderr, "FAT is NULL\n");
         return -1;
@@ -62,7 +62,11 @@ fat_entry_t extend_chain(FATEntry fat, fat_entry_t start_block) {
         }
         start_block = fat[start_block];
     }
-    fat_entry_t next_block = allocate_block(fat, start_block);
+    fat_entry_t next_block;
+    for(int i=0; i<block_num; i++){
+        next_block = allocate_block(fat, start_block);
+        start_block=next_block;
+    }
     return next_block;
 }
 
@@ -239,6 +243,41 @@ int findFile(const char* name, char* buffer){
     }
     printf("File not found\n");
     return -1;
+}
+
+int write(FileHandleEntry handle, char* buffer, const void* data, size_t size){
+    if(handle == NULL || data == NULL) {
+        fprintf(stderr, "Handle or data is NULL\n");
+        return -1;
+    }
+    if(handle->file_index < 0 || handle->file_index >= BLOCKS_NUM) {
+        fprintf(stderr, "File index out of bound\n");
+        return -1; 
+    }
+    if(buffer == NULL){
+        fprintf(stderr, "Buffer is NULL\n");
+        return -1;
+    }
+    if(size <= 0){
+        fprintf(stderr, "Size error\n");
+        return -1;
+    }
+    if(handle->position < 0 || handle->position > BLOCK_SIZE*BLOCKS_NUM) {
+        fprintf(stderr, "Cursor out of bounds\n");
+        return -1;
+    }
+    FileEntry file = getFileEntry(handle->file_index, buffer);
+    FATEntry fat = (FATEntry) buffer;
+    if(handle->position+size < BLOCK_SIZE){ // Data fits in the first block
+        unsigned int offset = file->start_block*BLOCK_SIZE;
+        memcpy(buffer + offset, data, size);
+        handle->position += size;
+        file->size += size;
+        return size;
+    }else{
+        int blocks_needed = (handle->position+size)%BLOCK_SIZE;
+        extend_chain(fat, file->start_block, blocks_needed);
+    }
 }
 
 /* int write(FileHandleEntry handle, char* buffer, const void* data, size_t size) {

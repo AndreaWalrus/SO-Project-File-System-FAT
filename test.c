@@ -16,17 +16,11 @@ int main(int argc, char *argv[]) {
     printf("File Entries Size: %d\n", FILE_ENTRY_BLOCKS);
     printf("Free block: %hd\n", find_free_block(fat));
 
-/*     fat[FAT_SIZE+FILE_ENTRY_BLOCKS]= FAT_EOC;
-    fat_entry_t block = allocate_block(fat, FAT_SIZE+FILE_ENTRY_BLOCKS);
-    block = allocate_block(fat, FAT_SIZE+FILE_ENTRY_BLOCKS+1);
-    printFAT(fat);
-    printf("Free block: %hd\n", find_free_block(fat)); */
     printFAT(fat);
     int entry = createFile("pippo\0", buffer);
     int offset = getOffset(entry);
     FileEntry file = (FileEntry)(buffer + offset);
 
-    //int entry = findFile("pippo\0", buffer);
     printFAT(fat);
     createFile("pluto\0", buffer);
     createFile("paperino\0", buffer);

@@ -48,7 +48,7 @@ FATEntry init_fat(char* buffer); // Initializes the FAT and the FileEntry Direct
 fat_entry_t find_free_block(FATEntry fat); // Scans the FAT for the first available free block
 fat_entry_t allocate_block(FATEntry fat, fat_entry_t start_block); // Allocate a single block of the FAT
 fat_entry_t free_block(FATEntry fat, fat_entry_t block_index); // Frees a single block of the FAT
-fat_entry_t extend_chain(FATEntry fat, fat_entry_t start_block); // Adds a block to the end of the chain
+fat_entry_t extend_chain(FATEntry fat, fat_entry_t start_block, unsigned int block_num); // Adds a block to the end of the chain
 int erase_Chain(FATEntry fat, fat_entry_t start_block); // Removes the entire chain, returns the number of blocks erased
 
 int createFile(const char* name, char* buffer); // Create a file on the first available file entry and free block, returns index of the file entry list
