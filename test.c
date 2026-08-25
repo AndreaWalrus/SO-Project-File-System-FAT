@@ -25,20 +25,21 @@ int main(int argc, char *argv[]) {
     int entry = createFile("pippo\0", buffer);
     int offset = getOffset(entry);
     FileEntry file = (FileEntry)(buffer + offset);
-    if (file->start_block != -1) {
-        printf("File 'pippo' created at block: %hd\n", file->start_block);
-    } else {
-        printf("Failed to create file 'pippo'\n");
-    }
 
     //int entry = findFile("pippo\0", buffer);
     printFAT(fat);
+    createFile("pluto\0", buffer);
+    createFile("paperino\0", buffer);
 
-    
-    printFile(file);
-    eraseFile(getIndex(file), buffer);
+    printFileEntryList(buffer);
 
+    eraseFile(findFile("pluto\0", buffer), buffer);
+    printFileEntryList(buffer);
     printFAT(fat);
+
+    createFile("topolino\0", buffer);
+
+    printFileEntryList(buffer);
     
     //Cleanup
 

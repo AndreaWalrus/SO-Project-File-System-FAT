@@ -126,7 +126,7 @@ int createFile(const char* name, char* buffer) {
     for(int i = 0; i<BLOCKS_NUM; i++){
         file = (FileEntry) (buffer+getOffset(i));
         if(file->is_used==0){
-            printf("Found available entry at position %d\n", i);
+            //printf("Found available entry at position %d\n", i);
             pos=i;
             break;
         }
@@ -140,6 +140,7 @@ int createFile(const char* name, char* buffer) {
     file->file_index = pos;
 
     fat[start_block] = FAT_EOC;
+    printf("File 'pippo' created at block: %hd, index: %d\n", start_block, pos);
     return pos;
 }
 
@@ -230,7 +231,7 @@ int findFile(const char* name, char* buffer){
         return -1;
     }
     for(int i=0;i<BLOCKS_NUM;i++){
-        FileEntry file = (FileEntry) (buffer+(FAT_SIZE*BLOCK_SIZE)+(i*FILE_ENTRY_SIZE));
+        FileEntry file = (FileEntry) (buffer+getOffset(i));
         if(strcmp(file->name, name)==0){
             printf("File found at entry %d\n", i);
             return i;
@@ -326,10 +327,26 @@ void printFile(FileEntry file){
         fprintf(stderr, "File is NULL\n");
         return;
     }
-    printf("-----------------\nFile Name: %s\n", file->name);
+    printf("File Name: %s\n", file->name);
     printf("Start Block: %hd\n", file->start_block);
     printf("Size: %u bytes\n", file->size);
     printf("Is Directory: %s\n", file->is_directory ? "Yes" : "No");
     printf("Is used: %s\n", file->is_used ? "Yes" : "No");
-    printf("File index: %d\n-----------------\n", file->file_index);
+    printf("File index: %d\n", file->file_index);
+}
+
+void printFileEntryList(char* buffer){
+    if(buffer == NULL){
+        fprintf(stderr, "Buffer is NULL\n");
+        return;
+    }
+    printf("-----------------\nFile Entry List:\n");
+    for(int i=0; i<BLOCKS_NUM; i++){
+        FileEntry file = (FileEntry) (buffer+getOffset(i));
+        if(file->is_used){
+            printf("[%d]:\n", i);
+            printFile(getFileEntry(i, buffer));
+        }
+    }
+    printf("-----------------\n");
 }

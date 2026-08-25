@@ -69,3 +69,4 @@ int createDir(const char* name);
 // Testing functions
 void printFAT(FATEntry fat);
 void printFile(FileEntry file);
+void printFileEntryList(char* buffer);
