@@ -268,15 +268,41 @@ int write(FileHandleEntry handle, char* buffer, const void* data, size_t size){
     }
     FileEntry file = getFileEntry(handle->file_index, buffer);
     FATEntry fat = (FATEntry) buffer;
+    int current_block = handle->position%BLOCK_SIZE;
+    fat_entry_t next_block;
+    fat_entry_t start_block=file->start_block;
+    for(int i=0; i<current_block; i++){
+        next_block = fat[start_block];
+        start_block=next_block;
+    }
+    unsigned int offset = start_block*BLOCK_SIZE;
     if(handle->position+size < BLOCK_SIZE){ // Data fits in the first block
-        unsigned int offset = file->start_block*BLOCK_SIZE;
-        memcpy(buffer + offset, data, size);
+        memcpy(buffer + offset + handle->position, data, size);
         handle->position += size;
         file->size += size;
         return size;
     }else{
         int blocks_needed = (handle->position+size)%BLOCK_SIZE;
         extend_chain(fat, file->start_block, blocks_needed);
+        int wrote=0;
+        memcpy(buffer + offset + handle->position, data, BLOCK_SIZE-handle->position);
+        wrote+=BLOCK_SIZE-handle->position;
+        fat_entry_t next_block = fat[start_block];
+        for(int i=0; i<blocks_needed; i++){
+            offset = next_block*BLOCK_SIZE;
+            if(size-wrote>=BLOCK_SIZE){
+                memcpy(buffer + offset + handle->position, data+wrote, BLOCK_SIZE);
+                wrote+=BLOCK_SIZE;
+            }else{
+                memcpy(buffer + offset + handle->position, data+wrote, size-wrote);
+                wrote=size;
+            }
+            next_block = fat[next_block];
+            if(next_block == FAT_RSVD){
+                fprintf(stderr, "Block reserved\n");
+                return -1;
+            }
+        }
     }
 }
 
