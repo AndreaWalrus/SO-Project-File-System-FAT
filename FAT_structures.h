@@ -14,6 +14,7 @@ typedef int16_t fat_entry_t;
 
 // File structure size in buffer: 48 bytes for name + 2 bytes for start_block + 4 bytes for size + 1 byte for is_directory + 1 for is_used + 4 bytes for file_index + 4 bytes of padding = 64 bytes
 #define FILE_ENTRY_SIZE 64
+#define MAX_OPENED_FILE 4
 
 #define FAT_SIZE ((BLOCKS_NUM*sizeof(fat_entry_t)+BLOCK_SIZE-1) / BLOCK_SIZE) // Number of blocks occupied by the FAT itself rounded up
 #define FILE_ENTRY_BLOCKS ((BLOCKS_NUM*FILE_ENTRY_SIZE) / BLOCK_SIZE) // Number of blocks occupied by the FileEntries, fixed amount based on the number of blocks
@@ -42,14 +43,14 @@ struct FileHandle{
 };
 
 typedef struct FileHandle *FileHandleEntry;
-static struct FileHandle FileHandleTable[BLOCKS_NUM];
+static struct FileHandle FileHandleTable[MAX_OPENED_FILE];
 
 FATEntry init_fat(char* buffer); // Initializes the FAT and the FileEntry Directory
 fat_entry_t find_free_block(FATEntry fat); // Scans the FAT for the first available free block
 fat_entry_t allocate_block(FATEntry fat, fat_entry_t start_block); // Allocate a single block of the FAT
 fat_entry_t free_block(FATEntry fat, fat_entry_t block_index); // Frees a single block of the FAT
 fat_entry_t extend_chain(FATEntry fat, fat_entry_t start_block, unsigned int block_num); // Adds a block to the end of the chain
-int erase_Chain(FATEntry fat, fat_entry_t start_block); // Removes the entire chain, returns the number of blocks erased
+int erase_chain(FATEntry fat, fat_entry_t start_block); // Removes the entire chain, returns the number of blocks erased
 
 int createFile(const char* name, char* buffer); // Create a file on the first available file entry and free block, returns index of the file entry list
 int eraseFile(int file_index, char* buffer);
@@ -70,3 +71,4 @@ int createDir(const char* name);
 void printFAT(FATEntry fat);
 void printFile(FileEntry file);
 void printFileEntryList(char* buffer);
+void printFileHandleTable();

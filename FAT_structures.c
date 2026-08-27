@@ -198,7 +198,7 @@ FileHandleEntry openFile(FileEntry file) {
         fprintf(stderr, "File is NULL\n");
         return NULL;
     }
-    for(int i=0; i<BLOCKS_NUM; i++){
+    for(int i=0; i<MAX_OPENED_FILE; i++){
         if(!FileHandleTable[i].is_used){
             FileHandleTable[i].file_index=getIndex(file);
             FileHandleTable[i].position=0;
@@ -268,7 +268,7 @@ int write(FileHandleEntry handle, char* buffer, const void* data, size_t size){
     }
     FileEntry file = getFileEntry(handle->file_index, buffer);
     FATEntry fat = (FATEntry) buffer;
-    int current_block = handle->position%BLOCK_SIZE;
+    int current_block = handle->position/BLOCK_SIZE;
     fat_entry_t next_block;
     fat_entry_t start_block=file->start_block;
     for(int i=0; i<current_block; i++){
@@ -277,24 +277,29 @@ int write(FileHandleEntry handle, char* buffer, const void* data, size_t size){
     }
     unsigned int offset = start_block*BLOCK_SIZE;
     if(handle->position+size < BLOCK_SIZE){ // Data fits in the first block
-        memcpy(buffer + offset + handle->position, data, size);
+        memcpy(buffer + offset + (handle->position%BLOCK_SIZE), data, size);
         handle->position += size;
         file->size += size;
         return size;
     }else{
-        int blocks_needed = (handle->position+size)%BLOCK_SIZE;
-        extend_chain(fat, file->start_block, blocks_needed);
+        int blocks_needed = (handle->position+size)/BLOCK_SIZE;
+        if(extend_chain(fat, file->start_block, blocks_needed) == -1){
+            return -1;
+        }
         int wrote=0;
-        memcpy(buffer + offset + handle->position, data, BLOCK_SIZE-handle->position);
-        wrote+=BLOCK_SIZE-handle->position;
+        memcpy(buffer + offset + (handle->position%BLOCK_SIZE), data, BLOCK_SIZE-handle->position);
+        wrote+=BLOCK_SIZE-(handle->position%BLOCK_SIZE);
+        handle->position+=wrote;
         fat_entry_t next_block = fat[start_block];
         for(int i=0; i<blocks_needed; i++){
             offset = next_block*BLOCK_SIZE;
             if(size-wrote>=BLOCK_SIZE){
-                memcpy(buffer + offset + handle->position, data+wrote, BLOCK_SIZE);
+                memcpy(buffer + offset, data+wrote, BLOCK_SIZE);
                 wrote+=BLOCK_SIZE;
+                handle->position+=BLOCK_SIZE;
             }else{
-                memcpy(buffer + offset + handle->position, data+wrote, size-wrote);
+                memcpy(buffer + offset + (handle->position%BLOCK_SIZE), data+wrote, size-wrote);
+                handle->position+=size-wrote;
                 wrote=size;
             }
             next_block = fat[next_block];
@@ -303,75 +308,9 @@ int write(FileHandleEntry handle, char* buffer, const void* data, size_t size){
                 return -1;
             }
         }
+        return wrote;
     }
 }
-
-/* int write(FileHandleEntry handle, char* buffer, const void* data, size_t size) {
-    if(handle == NULL || data == NULL) {
-        fprintf(stderr, "Handle or data is NULL\n");
-        return -1;
-    }
-    if(handle->file == NULL) {
-        fprintf(stderr, "File in handle is NULL\n");
-        return -1; 
-    }
-    if(buffer == NULL){
-        fprintf(stderr, "Buffer is NULL\n");
-        return -1;
-    }
-    if(size <= 0){
-        fprintf(stderr, "size error\n");
-        return -1;
-    }
-    unsigned int file_size = handle->file->size - sizeof(struct File); // Bytes used for file data
-    if(handle->position < sizeof(struct File)) {
-        fprintf(stderr, "Cursor out of bounds\n");
-        return -1;
-    }
-    if(handle->position < BLOCK_SIZE){ // Cursor is within the first block
-        if((handle->position%BLOCK_SIZE) + file_size < BLOCK_SIZE){ // Data fits in the first block
-            unsigned int offset = (handle->file->start_block * BLOCK_SIZE) + handle->position;
-            memcpy(buffer + offset, data, size);
-            handle->position += size;
-            handle->file->size += size;
-            return size;
-        }
-        if((handle->position%BLOCK_SIZE) + file_size >= BLOCK_SIZE){ // Data does not fit in the first block
-            int i=0;
-            FATEntry fat = (FATEntry)buffer;
-            while((i*BLOCK_SIZE)-handle->position < size){ // Extend the file chain to contain the data
-                fat_entry_t next_block = allocate_block(fat, handle->file->start_block);
-                if (next_block == -1) {
-                    fprintf(stderr, "Failed to allocate new block for writing\n");
-                    return -1;
-                }
-                fat_entry_t new_block = extend_chain(fat, handle->file->start_block);
-                i++;
-            }
-            unsigned int written = 0;
-            fat_entry_t current_block = handle->file->start_block;
-            while(written < size){
-                unsigned int block_offset = (int)(handle->position / BLOCK_SIZE)+1;
-                unsigned int to_write = 0;
-                if(size-written>BLOCK_SIZE)
-                    to_write = (BLOCK_SIZE*block_offset) - handle->position;
-                else
-                    to_write = size - written;
-                unsigned int offset = (current_block * (fat_entry_t)BLOCK_SIZE) + (handle->position%BLOCK_SIZE);
-                memcpy(buffer + offset, (char*)data + written, to_write);
-                handle->position += to_write;
-                written += to_write;
-                handle->file->size += to_write;
-                current_block = fat[current_block];
-                if(current_block == FAT_RSVD) {
-                    fprintf(stderr, "Block reserved\n");
-                    return -1;
-                }
-            }
-
-        }
-    }
-} */
 
 // Testing functions
 
@@ -414,4 +353,13 @@ void printFileEntryList(char* buffer){
         }
     }
     printf("-----------------\n");
+}
+
+void printFileHandleTable(){
+    printf("File Handle Table:\n");
+    for(int i=0; i<MAX_OPENED_FILE; i++){
+        printf("File index: %d\n", FileHandleTable[i].file_index);
+        printf("Position: %d\n", FileHandleTable[i].position);
+        printf("Is used: %s\n", FileHandleTable[i].is_used ? "Yes" : "No");
+    }
 }

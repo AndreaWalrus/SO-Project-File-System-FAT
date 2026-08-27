@@ -32,8 +32,19 @@ int main(int argc, char *argv[]) {
     printFAT(fat);
 
     createFile("topolino\0", buffer);
-
     printFileEntryList(buffer);
+
+    FileHandleEntry handle = openFile(file);
+    printFileHandleTable();
+    int data[550];
+    for(int i=0; i<550; i++){
+        data[i]=i;
+    }
+    write(handle, buffer, data, 550);
+    printFileHandleTable();
+    printFAT(fat);
+
+    closeFile(handle);
     
     //Cleanup
 
