@@ -63,6 +63,7 @@ int findFile(const char* name, char* buffer);
 
 int write(FileHandleEntry handle, char* buffer, const void* data, size_t size);
 int read(FileHandleEntry handle, void* buffer, size_t size);
+int seek(FileHandleEntry handle, char* buffer, unsigned int position);
 
 
 int createDir(const char* name);

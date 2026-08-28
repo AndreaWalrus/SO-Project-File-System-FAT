@@ -312,6 +312,76 @@ int write(FileHandleEntry handle, char* buffer, const void* data, size_t size){
     }
 }
 
+void* read(FileHandleEntry handle, char* buffer, size_t size){
+    if(handle == NULL){
+        fprintf(stderr, "Handle is NULL\n");
+        return -1;
+    }
+    if(buffer == NULL){
+        fprintf(stderr, "Buffer is NULL\n");
+        return -1;
+    }
+    if(size < 0 || size > getFileEntry(handle->file_index, buffer)->size){
+        fprintf(stderr, "Size out of bounds\n");
+        return -1;
+    }
+    FATEntry fat = (FATEntry) buffer;
+    FileEntry file = getFileEntry(handle->file_index, buffer);   
+    if(size>file->size-handle->position){
+        fprintf(stderr, "Not enough data in File\n");
+        return -1;
+    }
+    void* data;
+    fat_entry_t current_block = handle->position/BLOCK_SIZE;
+    fat_entry_t start_block = file->start_block;
+    for(int i=0; i<current_block; i++){
+        start_block=fat[start_block];
+    }
+    unsigned int offset = start_block*BLOCK_SIZE;
+    int read=0;
+    int relative_position = handle->position%BLOCK_SIZE;
+    if(size+relative_position<BLOCK_SIZE){ // First block is enough to read size bytes
+        memcpy(data, buffer+offset+relative_position, size);
+        read+=size;
+        handle->position+=read;
+        return data;
+    }else{ // Multiple blocks needed to read size bytes
+        memcpy(data, buffer+offset+relative_position, BLOCK_SIZE-relative_position);
+        read+=BLOCK_SIZE-relative_position;
+        handle->position+=read;
+        start_block=fat[start_block];
+        offset=start_block*BLOCK_SIZE;
+        while(size-read>BLOCK_SIZE){
+            memcpy(data+read, buffer+offset, BLOCK_SIZE);
+            read+=BLOCK_SIZE;
+            handle->position=read;
+            start_block=fat[start_block];
+            offset=start_block*BLOCK_SIZE;
+        }
+        memcpy(data+read, buffer+offset, size-read); // Last block needed
+        handle->position+=size-read;
+        read=size;
+        return data;
+    }
+}
+
+int seek(FileHandleEntry handle, char* buffer, unsigned int position){
+    if(handle == NULL){
+        fprintf(stderr, "Handle is NULL\n");
+        return -1;
+    }
+    if(buffer == NULL){
+        fprintf(stderr, "Buffer is NULL\n");
+        return -1;
+    }
+    if(position < 0 || position > BLOCK_SIZE*BLOCKS_AVAILABLE){
+        fprintf(stderr, "Position out of bounds\n");
+        return -1;
+    }
+    handle->position=position;
+    return 0;
+}
+
 // Testing functions
 
 void printFAT(FATEntry fat) {
