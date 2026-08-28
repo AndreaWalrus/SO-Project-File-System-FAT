@@ -43,6 +43,23 @@ int main(int argc, char *argv[]) {
     write(handle, buffer, data, 550);
     printFileHandleTable();
     printFAT(fat);
+    printFileEntryList(buffer);
+
+    seek(handle, buffer, 0);
+    printFileHandleTable();
+    char results[550];
+    read(handle, (void*) results, buffer, 550);
+    printf("Data:\n");
+    for(int i=0; i<550; i++){
+        printf("%u ", (unsigned char)results[i]);
+        if(i%32==0 && i!=0) printf("\n");
+    }
+    /* for(int i=0; i<64; i++){
+        printf("%d ", (int)results[i]);
+        if(i%32==0 && i!=0) printf("\n");
+    } */
+    printf("\n");
+    printFileHandleTable();
 
     closeFile(handle);
     

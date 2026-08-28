@@ -62,7 +62,7 @@ int closeFile(FileHandleEntry handle);
 int findFile(const char* name, char* buffer);
 
 int write(FileHandleEntry handle, char* buffer, const void* data, size_t size);
-int read(FileHandleEntry handle, void* buffer, size_t size);
+int read(FileHandleEntry handle, void* dest, char* buffer, size_t size);
 int seek(FileHandleEntry handle, char* buffer, unsigned int position);
 
 
