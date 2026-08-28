@@ -12,17 +12,19 @@
 
 typedef int16_t fat_entry_t;
 
-// File structure size in buffer: 48 bytes for name + 2 bytes for start_block + 4 bytes for size + 1 byte for is_directory + 1 for is_used + 4 bytes for file_index + 4 bytes of padding = 64 bytes
+// File structure size in buffer: 48 bytes for name + 2 bytes for start_block + 4 bytes for size + 1 byte for is_directory + 1 for is_used + 4 bytes for file_index + 4 bytes for parent_index = 64 bytes
 #define FILE_ENTRY_SIZE 64
 #define MAX_OPENED_FILE 4
 
 #define FAT_SIZE ((BLOCKS_NUM*sizeof(fat_entry_t)+BLOCK_SIZE-1) / BLOCK_SIZE) // Number of blocks occupied by the FAT itself rounded up
 #define FILE_ENTRY_BLOCKS ((BLOCKS_NUM*FILE_ENTRY_SIZE) / BLOCK_SIZE) // Number of blocks occupied by the FileEntries, fixed amount based on the number of blocks
-#define BLOCKS_AVAILABLE (BLOCKS_NUM - FAT_SIZE) // Number of blocks available for files and directories
+#define BLOCKS_AVAILABLE (BLOCKS_NUM - FAT_SIZE-FILE_ENTRY_BLOCKS) // Number of blocks available for files and directories
 
 #define FAT_FREE (fat_entry_t)-1 // Free block flag
 #define FAT_EOC  (fat_entry_t)-2 // End of chain flag
 #define FAT_RSVD (fat_entry_t)-3 // Reserved blocks for the FAT itself
+
+#define ROOT_DIR -1; // Root directory index
 
 struct File{
     char name[48];
@@ -31,6 +33,7 @@ struct File{
     uint8_t is_directory; // 1 if directory, 0 if file
     uint8_t is_used; // 1 if yes, 0 otherwise
     unsigned int file_index; // index of the file in the FileEntries list
+    int parent_index; // index of parent directory
 };
 
 typedef fat_entry_t *FATEntry;
@@ -44,6 +47,7 @@ struct FileHandle{
 
 typedef struct FileHandle *FileHandleEntry;
 static struct FileHandle FileHandleTable[MAX_OPENED_FILE];
+static int current_directory=ROOT_DIR;
 
 FATEntry init_fat(char* buffer); // Initializes the FAT and the FileEntry Directory
 fat_entry_t find_free_block(FATEntry fat); // Scans the FAT for the first available free block
@@ -57,6 +61,7 @@ int eraseFile(int file_index, char* buffer);
 int getOffset(unsigned int file_index);
 int getIndex(FileEntry file);
 FileEntry getFileEntry(unsigned int file_index, char* buffer);
+int findFreeFileEntry(char* buffer);
 FileHandleEntry openFile(FileEntry file);
 int closeFile(FileHandleEntry handle);
 int findFile(const char* name, char* buffer);
@@ -66,7 +71,10 @@ int read(FileHandleEntry handle, void* dest, char* buffer, size_t size);
 int seek(FileHandleEntry handle, char* buffer, unsigned int position);
 
 
-int createDir(const char* name);
+int createDir(const char* name, char* buffer);
+int erasaeDir();
+int changeDir();
+int listDir();
 
 // Testing functions
 void printFAT(FATEntry fat);

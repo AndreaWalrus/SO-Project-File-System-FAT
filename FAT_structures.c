@@ -117,6 +117,11 @@ int createFile(const char* name, char* buffer) {
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
+    int res = findFile(name, buffer);
+    if(res!=-1 && getFileEntry(res, buffer)->is_directory==0){
+        fprintf(stderr, "File already exists\n");
+        return -1;
+    }
     FATEntry fat = (FATEntry)buffer;
     fat_entry_t start_block = find_free_block(fat);
     if (start_block == -1) {
@@ -142,6 +147,7 @@ int createFile(const char* name, char* buffer) {
     file->is_directory = 0;
     file->is_used = 1;
     file->file_index = pos;
+    file->parent_index=current_directory;
 
     fat[start_block] = FAT_EOC;
     printf("File 'pippo' created at block: %hd, index: %d\n", start_block, pos);
@@ -182,7 +188,7 @@ int getIndex(FileEntry file){
 }
 
 FileEntry getFileEntry(unsigned int file_index, char* buffer){
-    if(file_index>BLOCKS_NUM){
+    if(file_index>=BLOCKS_NUM){
         fprintf(stderr, "Index out of range\n");
         return NULL;
     }
@@ -191,6 +197,19 @@ FileEntry getFileEntry(unsigned int file_index, char* buffer){
         return NULL;
     }
     return (FileEntry) (buffer+getOffset(file_index));
+}
+
+int findFreeFileEntry(char* buffer){
+    if(buffer==NULL){
+        fprintf(stderr, "Buffer is NULL\n");
+        return -1;
+    }
+    for(int i=0; i<BLOCKS_NUM; i++){
+        FileEntry file = getFileEntry(i, buffer);
+        if(!file->is_used) return i;
+    }
+    fprintf(stderr, "Free entry not available\n");
+    return -1;
 }
 
 FileHandleEntry openFile(FileEntry file) {
@@ -236,6 +255,7 @@ int findFile(const char* name, char* buffer){
     }
     for(int i=0;i<BLOCKS_NUM;i++){
         FileEntry file = (FileEntry) (buffer+getOffset(i));
+        if(!file->is_used) continue;
         if(strcmp(file->name, name)==0){
             printf("File found at entry %d\n", i);
             return i;
@@ -379,6 +399,32 @@ int seek(FileHandleEntry handle, char* buffer, unsigned int position){
         return -1;
     }
     handle->position=position;
+    return 0;
+}
+
+int createDir(const char* name, char* buffer){
+    if(name==NULL){
+        fprintf(stderr, "Name is NULL\n");
+        return -1;
+    }
+    if(buffer==NULL){
+        fprintf(stderr, "Buffer is NULL\n");
+        return -1;
+    }
+    int res = findFile(name, buffer);
+    FileEntry file = getFileEntry(res, buffer);
+    if(res!=-1 && file->is_directory==1 && file->parent_index==current_directory){
+        fprintf(stderr, "Dir already exists\n");
+        return -1;
+    }
+    int index = findFreeFileEntry(buffer);
+    FileEntry file = getFileEntry(index, buffer);
+    memcpy(file->name, name, 48);
+    file->is_directory=1;
+    file->is_used=1;
+    file->parent_index=current_directory;
+    file->size=0;
+    file->start_block=-1;
     return 0;
 }
 
