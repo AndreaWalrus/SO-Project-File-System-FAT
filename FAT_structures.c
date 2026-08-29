@@ -171,6 +171,7 @@ int eraseFile(int file_index, char* buffer) {
     unsigned int offset = (int) start_block * BLOCK_SIZE;
     memset(buffer+offset,0,file->size);
     file->is_used=0;
+    memset(file->name, 0, 48);
     file = NULL;
     return 0;
 }
@@ -256,7 +257,7 @@ int findFile(const char* name, char* buffer){
     for(int i=0;i<BLOCKS_NUM;i++){
         FileEntry file = (FileEntry) (buffer+getOffset(i));
         if(!file->is_used) continue;
-        if(strcmp(file->name, name)==0){
+        if(!strcmp(file->name, name)){
             printf("File found at entry %d\n", i);
             return i;
         }
@@ -402,6 +403,27 @@ int seek(FileHandleEntry handle, char* buffer, unsigned int position){
     return 0;
 }
 
+int find(const char* name, char* buffer, int is_directory){
+    if (buffer == NULL) {
+        fprintf(stderr, "Buffer is NULL\n");
+        return -1;
+    }
+    if (name == NULL) {
+        fprintf(stderr, "Name is NULL\n");
+        return -1;
+    }
+    for(int i=0;i<BLOCKS_NUM;i++){
+        FileEntry file = getFileEntry(i, buffer);
+        if(!file->is_used && file->parent_index!=current_directory && file->is_directory!=is_directory) continue;
+        if(!strcmp(file->name, name)){
+            printf("File/Dir found at entry %d\n", i);
+            return i;
+        }
+    }
+    printf("File not found\n");
+    return -1;
+}
+
 int createDir(const char* name, char* buffer){
     if(name==NULL){
         fprintf(stderr, "Name is NULL\n");
@@ -418,7 +440,7 @@ int createDir(const char* name, char* buffer){
         return -1;
     }
     int index = findFreeFileEntry(buffer);
-    FileEntry file = getFileEntry(index, buffer);
+    file = getFileEntry(index, buffer);
     memcpy(file->name, name, 48);
     file->is_directory=1;
     file->is_used=1;
@@ -426,6 +448,70 @@ int createDir(const char* name, char* buffer){
     file->size=0;
     file->start_block=-1;
     return 0;
+}
+
+int eraseDir(const char* name, char* buffer){
+    if(name==NULL){
+        fprintf(stderr, "Name is NULL\n");
+        return -1;
+    }
+    if(buffer==NULL){
+        fprintf(stderr, "Buffer is NULL\n");
+        return -1;
+    }
+    int res = findFile(name, buffer);
+    if(res==-1){
+        frpintf(stderr, "Dir not found\n");
+        return -1;
+    }
+    FileEntry dir = getFileEntry(res, buffer);
+    dir->size=0;
+    dir->is_used=0;
+    memset(dir->name, 0, 48);
+    printf("Removed directory\n");
+    return 0;
+}
+
+int changeDir(const char* name, char* buffer){
+    if(name==NULL){
+        fprintf(stderr, "Name is NULL\n");
+        return -1;
+    }
+    if(buffer==NULL){
+        fprintf(stderr, "Buffer is NULL\n");
+        return -1;
+    }
+    if(!strcmp(name, ".\0")){
+        return 0;
+    }
+    if(!strcmp(name, "..\0")){
+        if(current_directory==-1) return 0;
+        current_directory=getFileEntry(current_directory, buffer)->parent_index;
+        return 0;
+    }
+    FileEntry dir = find(name, buffer, 1);
+    if(dir==-1){
+        return -1;
+    }
+    current_directory=dir->file_index;
+    return 0;
+}
+
+int listDir(char* buffer){
+    if(buffer==NULL){
+        fprintf(stderr, "Buffer is NULL\n");
+        return -1;
+    }
+    for(int i=0; i<BLOCKS_NUM; i++){
+        FileEntry file = getFileEntry(i, buffer);
+        printf("./\n");
+        if(current_directory!=ROOT_DIR){
+            printf("../\n");
+        }
+        if(file->is_used && file->parent_index==current_directory && file->is_directory){
+            printf("%s/\n", file->name);
+        }
+    }
 }
 
 // Testing functions

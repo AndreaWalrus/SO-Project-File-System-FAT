@@ -24,7 +24,7 @@ typedef int16_t fat_entry_t;
 #define FAT_EOC  (fat_entry_t)-2 // End of chain flag
 #define FAT_RSVD (fat_entry_t)-3 // Reserved blocks for the FAT itself
 
-#define ROOT_DIR -1; // Root directory index
+#define ROOT_DIR -1 // Root directory index
 
 struct File{
     char name[48];
@@ -70,11 +70,12 @@ int write(FileHandleEntry handle, char* buffer, const void* data, size_t size);
 int read(FileHandleEntry handle, void* dest, char* buffer, size_t size);
 int seek(FileHandleEntry handle, char* buffer, unsigned int position);
 
+int find(const char* name, char* buffer, int is_directory);
 
 int createDir(const char* name, char* buffer);
-int erasaeDir();
+int eraseDir(const char* name, char* buffer);
 int changeDir();
-int listDir();
+int listDir(char* buffer);
 
 // Testing functions
 void printFAT(FATEntry fat);
