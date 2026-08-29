@@ -23,14 +23,14 @@ int main(int argc, char *argv[]) {
 
     printFAT(fat);
     createFile("pluto\0", buffer);
-    createFile("paperino\0", buffer);
+    createFile("paperone\0", buffer);
 
     printFileEntryList(buffer);
-
+    
     eraseFile(findFile("pluto\0", buffer), buffer);
     printFileEntryList(buffer);
     printFAT(fat);
-
+    /*
     createFile("topolino\0", buffer);
     printFileEntryList(buffer);
 
@@ -54,14 +54,18 @@ int main(int argc, char *argv[]) {
         printf("%u ", (unsigned char)results[i]);
         if(i%32==0 && i!=0) printf("\n");
     }
-    /* for(int i=0; i<64; i++){
-        printf("%d ", (int)results[i]);
-        if(i%32==0 && i!=0) printf("\n");
-    } */
     printf("\n");
     printFileHandleTable();
 
-    closeFile(handle);
+    closeFile(handle); */
+
+    listDir(buffer);
+    createDir("pippo\0", buffer);
+    listDir(buffer);
+    changeDir("pippo\0", buffer);
+    listDir(buffer);
+
+    printFileEntryList(buffer);
     
     //Cleanup
 

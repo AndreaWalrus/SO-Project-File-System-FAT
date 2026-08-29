@@ -15,6 +15,11 @@ FATEntry init_fat(char* buffer){
     }
     for(int i = 0; i<BLOCKS_NUM; i++){
         FileEntry file = (FileEntry) (buffer+(FAT_SIZE*BLOCK_SIZE)+(i*64));
+        strcpy(file->name,"\0");
+        file->start_block=-1;
+        file->size=0;
+        file->file_index=-1;
+        file->parent_index=ROOT_DIR;
         file->is_used=0; // Inizialize all the file entries as unused
     }
     return fat;  
@@ -140,8 +145,11 @@ int createFile(const char* name, char* buffer) {
             break;
         }
     }
-
-    memcpy(file->name, name, 48);
+    if(strlen(name)>48){
+        fprintf(stderr, "Name is too long\n");
+        return -1;
+    }
+    strcpy(file->name, name);
     file->start_block = start_block;
     file->size = 0;
     file->is_directory = 0;
@@ -168,11 +176,12 @@ int eraseFile(int file_index, char* buffer) {
     fat_entry_t start_block = file->start_block;
     int erased = erase_chain(fat, start_block);
     printf("Erased %d blocks\n", erased);
-    unsigned int offset = (int) start_block * BLOCK_SIZE;
-    memset(buffer+offset,0,file->size);
-    file->is_used=0;
     memset(file->name, 0, 48);
-    file = NULL;
+    file->start_block=-1;
+    file->size=0;
+    file->file_index=-1;
+    file->parent_index=ROOT_DIR;
+    file->is_used=0;
     return 0;
 }
 
@@ -414,11 +423,14 @@ int find(const char* name, char* buffer, int is_directory){
     }
     for(int i=0;i<BLOCKS_NUM;i++){
         FileEntry file = getFileEntry(i, buffer);
-        if(!file->is_used && file->parent_index!=current_directory && file->is_directory!=is_directory) continue;
-        if(!strcmp(file->name, name)){
-            printf("File/Dir found at entry %d\n", i);
+        if(!file->is_used) continue;
+        if(file->parent_index==current_directory && file->is_directory==is_directory){
+            if(!strcmp(file->name, name)){
+                printf("File/Dir found at entry %d\n", i);
             return i;
+            }
         }
+        
     }
     printf("File not found\n");
     return -1;
@@ -433,20 +445,28 @@ int createDir(const char* name, char* buffer){
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
-    int res = findFile(name, buffer);
-    FileEntry file = getFileEntry(res, buffer);
-    if(res!=-1 && file->is_directory==1 && file->parent_index==current_directory){
-        fprintf(stderr, "Dir already exists\n");
-        return -1;
+    int res = find(name, buffer, 1);
+    FileEntry file;
+    if(res!=-1){
+        file = getFileEntry(res, buffer);
+        if(file->parent_index==current_directory){
+            fprintf(stderr, "Dir already exists\n");
+            return -1;
+        }
     }
     int index = findFreeFileEntry(buffer);
     file = getFileEntry(index, buffer);
-    memcpy(file->name, name, 48);
+    if(strlen(name)>48){
+        fprintf(stderr, "Name is too long\n");
+        return -1;
+    }
+    strcpy(file->name, name);
     file->is_directory=1;
     file->is_used=1;
     file->parent_index=current_directory;
     file->size=0;
     file->start_block=-1;
+    file->file_index=index;
     return 0;
 }
 
@@ -464,9 +484,12 @@ int eraseDir(const char* name, char* buffer){
         return -1;
     }
     FileEntry dir = getFileEntry(res, buffer);
-    dir->size=0;
-    dir->is_used=0;
     memset(dir->name, 0, 48);
+    dir->start_block=-1;
+    dir->size=0;
+    dir->file_index=-1;
+    dir->parent_index=ROOT_DIR;
+    dir->is_used=0;
     printf("Removed directory\n");
     return 0;
 }
@@ -501,12 +524,12 @@ int listDir(char* buffer){
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
+    printf("./\n");
+    if(current_directory!=ROOT_DIR){
+        printf("../\n");
+    }
     for(int i=0; i<BLOCKS_NUM; i++){
         FileEntry file = getFileEntry(i, buffer);
-        printf("./\n");
-        if(current_directory!=ROOT_DIR){
-            printf("../\n");
-        }
         if(file->is_used && file->parent_index==current_directory && file->is_directory){
             printf("%s/\n", file->name);
         }

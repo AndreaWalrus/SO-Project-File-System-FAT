@@ -28,10 +28,10 @@ typedef int16_t fat_entry_t;
 
 struct File{
     char name[48];
-    fat_entry_t start_block; 
-    unsigned int size; // in bytes
+    fat_entry_t start_block;
     uint8_t is_directory; // 1 if directory, 0 if file
     uint8_t is_used; // 1 if yes, 0 otherwise
+    unsigned int size; // in bytes
     unsigned int file_index; // index of the file in the FileEntries list
     int parent_index; // index of parent directory
 };
@@ -74,7 +74,7 @@ int find(const char* name, char* buffer, int is_directory);
 
 int createDir(const char* name, char* buffer);
 int eraseDir(const char* name, char* buffer);
-int changeDir();
+int changeDir(const char* name, char* buffer);
 int listDir(char* buffer);
 
 // Testing functions
