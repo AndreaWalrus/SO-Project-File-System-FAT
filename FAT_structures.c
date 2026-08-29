@@ -459,9 +459,8 @@ int eraseDir(const char* name, char* buffer){
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
-    int res = findFile(name, buffer);
+    int res = find(name, buffer, 1);
     if(res==-1){
-        frpintf(stderr, "Dir not found\n");
         return -1;
     }
     FileEntry dir = getFileEntry(res, buffer);
@@ -489,11 +488,11 @@ int changeDir(const char* name, char* buffer){
         current_directory=getFileEntry(current_directory, buffer)->parent_index;
         return 0;
     }
-    FileEntry dir = find(name, buffer, 1);
+    int dir = find(name, buffer, 1);
     if(dir==-1){
         return -1;
     }
-    current_directory=dir->file_index;
+    current_directory=getFileEntry(dir, buffer)->file_index;
     return 0;
 }
 
