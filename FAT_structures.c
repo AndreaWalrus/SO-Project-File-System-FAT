@@ -473,7 +473,7 @@ int find(const char* name, char* buffer, int is_directory, int local_search){
         }
         
     }
-    printf("File not found\n");
+    printf("File/Dir not found\n");
     return -1;
 }
 

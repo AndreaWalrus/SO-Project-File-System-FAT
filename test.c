@@ -69,8 +69,33 @@ int main(int argc, char *argv[]) {
     listDir(buffer);
 
     printFileEntryList(buffer);
+
+    // Active loop
+    while(1){
+        char input[32];
+        fgets(input, 32, stdin);
+        char * command = strtok(input, " \n");
+        if(!strcmp(command, "exit\0")){
+            printf("Exiting...\n");
+            break;
+        }
+        if(!strcmp(command, "listDir\0")){
+            listDir(buffer);
+        }
+        if(!strcmp(command, "changeDir\0")){
+            changeDir(strtok(NULL, " \n"), buffer);
+        }
+        if(!strcmp(command, "createDir\0")){
+            createDir(strtok(NULL, " \n"), buffer);
+        }
+        if(!strcmp(command, "eraseDir\0")){
+            eraseDir(strtok(NULL, " \n"), buffer);
+        }
+
+        
+    }
     
-    //Cleanup
+    // Cleanup
 
     munmap(buffer, BLOCK_SIZE * BLOCKS_NUM);
     if(errno){
