@@ -3,6 +3,7 @@
 
 FATEntry init_fat(char* buffer){
     if (buffer == NULL) {
+        fflush(stdout);
         fprintf(stderr, "Buffer is NULL\n");
         return NULL;
     }
@@ -31,22 +32,25 @@ fat_entry_t find_free_block(FATEntry fat) {
             return i;
         }
     }
+    fflush(stdout);
     fprintf(stderr, "No free blocks available\n");
     return -1;
 }
 
-
 fat_entry_t allocate_block(FATEntry fat, fat_entry_t start_block) {
     if(fat == NULL) {
+        fflush(stdout);
         fprintf(stderr, "FAT is NULL\n");
         return -1;
     }
     if(start_block < (fat_entry_t)0 || start_block >= (fat_entry_t)BLOCKS_NUM){
+        fflush(stdout);
         fprintf(stderr, "Start block invalid\n");
         return -1;
     }
     fat_entry_t next_block = find_free_block(fat);
     if (next_block == -1) {
+        fflush(stdout);
         fprintf(stderr, "No free blocks available for allocation\n");
         return -1;
     }
@@ -57,11 +61,13 @@ fat_entry_t allocate_block(FATEntry fat, fat_entry_t start_block) {
 
 fat_entry_t extend_chain(FATEntry fat, fat_entry_t start_block, unsigned int block_num) {
     if(fat == NULL) {
+        fflush(stdout);
         fprintf(stderr, "FAT is NULL\n");
         return -1;
     }
     while(fat[start_block] != FAT_EOC) {
         if(fat[start_block] == FAT_RSVD || fat[start_block] == FAT_FREE) {
+            fflush(stdout);
             fprintf(stderr, "Invalid block in chain\n");
             return -1;
         }
@@ -77,10 +83,12 @@ fat_entry_t extend_chain(FATEntry fat, fat_entry_t start_block, unsigned int blo
 
 fat_entry_t free_block(FATEntry fat, fat_entry_t block_index) {
     if(fat == NULL){
+        fflush(stdout);
         fprintf(stderr, "FAT is NULL\n");
         return -1;
     }
     if (block_index < (fat_entry_t)0 || block_index >= (fat_entry_t)BLOCKS_NUM || fat[block_index] == FAT_FREE || fat[block_index] == FAT_RSVD) {
+        fflush(stdout);
         fprintf(stderr, "Invalid block index or block already free/reserved\n");
         return -1; 
     }
@@ -91,24 +99,32 @@ fat_entry_t free_block(FATEntry fat, fat_entry_t block_index) {
 
 int erase_chain(FATEntry fat, fat_entry_t start_block) {
     if (start_block < 0 || start_block >= BLOCKS_NUM) {
+        fflush(stdout);
         fprintf(stderr, "Invalid start block index\n");
         return -1;
     }
     if(fat == NULL) {
+        fflush(stdout);
         fprintf(stderr, "FAT is NULL\n");
         return -1;
     }
     int i=0;
+    char* buffer = (char*) fat;
     while (fat[start_block] != FAT_EOC ) {
-        if(fat[start_block] == FAT_RSVD)
+        if(fat[start_block] == FAT_RSVD){
+            fflush(stdout);
             fprintf(stderr, "Block Reserved\n");
             return -1;
+        }
         fat_entry_t next_block = fat[start_block];
         fat[start_block] = FAT_FREE;
+        int offset = BLOCK_SIZE * start_block;
+        memset(buffer+offset, 0, BLOCK_SIZE);
         start_block = next_block;
         i++;
     }
     if(fat[start_block] == FAT_RSVD || fat[start_block] == FAT_FREE){
+            fflush(stdout);
             fprintf(stderr, "Block Reserved or free\n");
             return -1;
     }
@@ -119,17 +135,20 @@ int erase_chain(FATEntry fat, fat_entry_t start_block) {
 
 int createFile(const char* name, char* buffer) {
     if (buffer == NULL) {
+        fflush(stdout);
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
     int res = findFile(name, buffer);
     if(res!=-1 && getFileEntry(res, buffer)->is_directory==0){
+        fflush(stdout);
         fprintf(stderr, "File already exists\n");
         return -1;
     }
     FATEntry fat = (FATEntry)buffer;
     fat_entry_t start_block = find_free_block(fat);
     if (start_block == -1) {
+        fflush(stdout);
         fprintf(stderr, "No free blocks available for file creation\n");
         return -1;
     }
@@ -146,6 +165,7 @@ int createFile(const char* name, char* buffer) {
         }
     }
     if(strlen(name)>48){
+        fflush(stdout);
         fprintf(stderr, "Name is too long\n");
         return -1;
     }
@@ -164,10 +184,12 @@ int createFile(const char* name, char* buffer) {
 
 int eraseFile(int file_index, char* buffer) {
     if(buffer == NULL) {
+        fflush(stdout);
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
     if(file_index<0 || file_index>BLOCKS_NUM){
+        fflush(stdout);
         fprintf(stderr, "Index out of bound\n");
         return -1;
     }
@@ -191,6 +213,7 @@ int getOffset(unsigned int file_index){
 
 int getIndex(FileEntry file){
     if(file==NULL){
+        fflush(stdout);
         fprintf(stderr, "File is NULL\n");
         return -1;
     }
@@ -199,10 +222,12 @@ int getIndex(FileEntry file){
 
 FileEntry getFileEntry(unsigned int file_index, char* buffer){
     if(file_index>=BLOCKS_NUM){
+        fflush(stdout);
         fprintf(stderr, "Index out of range\n");
         return NULL;
     }
     if(buffer==NULL){
+        fflush(stdout);
         fprintf(stderr, "buffer is NULL\n");
         return NULL;
     }
@@ -211,6 +236,7 @@ FileEntry getFileEntry(unsigned int file_index, char* buffer){
 
 int findFreeFileEntry(char* buffer){
     if(buffer==NULL){
+        fflush(stdout);
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
@@ -218,12 +244,14 @@ int findFreeFileEntry(char* buffer){
         FileEntry file = getFileEntry(i, buffer);
         if(!file->is_used) return i;
     }
+    fflush(stdout);
     fprintf(stderr, "Free entry not available\n");
     return -1;
 }
 
 FileHandleEntry openFile(FileEntry file) {
     if (file == NULL) {
+        fflush(stdout);
         fprintf(stderr, "File is NULL\n");
         return NULL;
     }
@@ -235,16 +263,19 @@ FileHandleEntry openFile(FileEntry file) {
             return &FileHandleTable[i];
         }
     }
+    fflush(stdout);
     fprintf(stderr, "Max number of Files opened\n");
     return NULL;
 }
 
 int closeFile(FileHandleEntry handle) {
     if (handle == NULL) {
+        fflush(stdout);
         fprintf(stderr, "Handle is NULL\n");
         return -1;
     }
     if(!handle->is_used){
+        fflush(stdout);
         fprintf(stderr, "Handle not in use\n");
         return -1;
     }
@@ -256,16 +287,18 @@ int closeFile(FileHandleEntry handle) {
 
 int findFile(const char* name, char* buffer){
     if (buffer == NULL) {
+        fflush(stdout);
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
     if (name == NULL) {
+        fflush(stdout);
         fprintf(stderr, "Name is NULL\n");
         return -1;
     }
     for(int i=0;i<BLOCKS_NUM;i++){
         FileEntry file = (FileEntry) (buffer+getOffset(i));
-        if(!file->is_used) continue;
+        if(!file->is_used || file->is_directory) continue;
         if(!strcmp(file->name, name)){
             printf("File found at entry %d\n", i);
             return i;
@@ -277,22 +310,27 @@ int findFile(const char* name, char* buffer){
 
 int write(FileHandleEntry handle, char* buffer, const void* data, size_t size){
     if(handle == NULL || data == NULL) {
+        fflush(stdout);
         fprintf(stderr, "Handle or data is NULL\n");
         return -1;
     }
     if(handle->file_index < 0 || handle->file_index >= BLOCKS_NUM) {
+        fflush(stdout);
         fprintf(stderr, "File index out of bound\n");
         return -1; 
     }
     if(buffer == NULL){
+        fflush(stdout);
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
     if(size <= 0){
+        fflush(stdout);
         fprintf(stderr, "Size error\n");
         return -1;
     }
     if(handle->position < 0 || handle->position > BLOCK_SIZE*BLOCKS_NUM) {
+        fflush(stdout);
         fprintf(stderr, "Cursor out of bounds\n");
         return -1;
     }
@@ -334,6 +372,7 @@ int write(FileHandleEntry handle, char* buffer, const void* data, size_t size){
             }
             next_block = fat[next_block];
             if(next_block == FAT_RSVD){
+                fflush(stdout);
                 fprintf(stderr, "Block reserved\n");
                 return -1;
             }
@@ -345,20 +384,24 @@ int write(FileHandleEntry handle, char* buffer, const void* data, size_t size){
 
 int read(FileHandleEntry handle, void* dest, char* buffer, size_t size){
     if(handle == NULL){
+        fflush(stdout);
         fprintf(stderr, "Handle is NULL\n");
         return -1;
     }
     if(buffer == NULL){
+        fflush(stdout);
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
     if(size < 0 || size > getFileEntry(handle->file_index, buffer)->size){
+        fflush(stdout);
         fprintf(stderr, "Size out of bounds\n");
         return -1;
     }
     FATEntry fat = (FATEntry) buffer;
     FileEntry file = getFileEntry(handle->file_index, buffer);   
     if(size>file->size-handle->position){
+        fflush(stdout);
         fprintf(stderr, "Not enough data in File\n");
         return -1;
     }
@@ -397,14 +440,17 @@ int read(FileHandleEntry handle, void* dest, char* buffer, size_t size){
 
 int seek(FileHandleEntry handle, char* buffer, unsigned int position){
     if(handle == NULL){
+        fflush(stdout);
         fprintf(stderr, "Handle is NULL\n");
         return -1;
     }
     if(buffer == NULL){
+        fflush(stdout);
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
     if(position < 0 || position > BLOCK_SIZE*BLOCKS_AVAILABLE){
+        fflush(stdout);
         fprintf(stderr, "Position out of bounds\n");
         return -1;
     }
@@ -414,10 +460,12 @@ int seek(FileHandleEntry handle, char* buffer, unsigned int position){
 
 int find(const char* name, char* buffer, int is_directory){
     if (buffer == NULL) {
+        fflush(stdout);
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
     if (name == NULL) {
+        fflush(stdout);
         fprintf(stderr, "Name is NULL\n");
         return -1;
     }
@@ -438,10 +486,12 @@ int find(const char* name, char* buffer, int is_directory){
 
 int createDir(const char* name, char* buffer){
     if(name==NULL){
+        fflush(stdout);
         fprintf(stderr, "Name is NULL\n");
         return -1;
     }
     if(buffer==NULL){
+        fflush(stdout);
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
@@ -450,6 +500,7 @@ int createDir(const char* name, char* buffer){
     if(res!=-1){
         file = getFileEntry(res, buffer);
         if(file->parent_index==current_directory){
+            fflush(stdout);
             fprintf(stderr, "Dir already exists\n");
             return -1;
         }
@@ -457,6 +508,7 @@ int createDir(const char* name, char* buffer){
     int index = findFreeFileEntry(buffer);
     file = getFileEntry(index, buffer);
     if(strlen(name)>48){
+        fflush(stdout);
         fprintf(stderr, "Name is too long\n");
         return -1;
     }
@@ -472,10 +524,12 @@ int createDir(const char* name, char* buffer){
 
 int eraseDir(const char* name, char* buffer){
     if(name==NULL){
+        fflush(stdout);
         fprintf(stderr, "Name is NULL\n");
         return -1;
     }
     if(buffer==NULL){
+        fflush(stdout);
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
@@ -496,10 +550,12 @@ int eraseDir(const char* name, char* buffer){
 
 int changeDir(const char* name, char* buffer){
     if(name==NULL){
+        fflush(stdout);
         fprintf(stderr, "Name is NULL\n");
         return -1;
     }
     if(buffer==NULL){
+        fflush(stdout);
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
@@ -521,6 +577,7 @@ int changeDir(const char* name, char* buffer){
 
 int listDir(char* buffer){
     if(buffer==NULL){
+        fflush(stdout);
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
@@ -540,6 +597,7 @@ int listDir(char* buffer){
 
 void printFAT(FATEntry fat) {
     if (fat == NULL) {
+        fflush(stdout);
         fprintf(stderr, "FAT is NULL\n");
         return;
     }
@@ -552,6 +610,7 @@ void printFAT(FATEntry fat) {
 
 void printFile(FileEntry file){
     if (file == NULL) {
+        fflush(stdout);
         fprintf(stderr, "File is NULL\n");
         return;
     }
@@ -565,6 +624,7 @@ void printFile(FileEntry file){
 
 void printFileEntryList(char* buffer){
     if(buffer == NULL){
+        fflush(stdout);
         fprintf(stderr, "Buffer is NULL\n");
         return;
     }

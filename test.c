@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
     eraseFile(findFile("pluto\0", buffer), buffer);
     printFileEntryList(buffer);
     printFAT(fat);
-    /*
+    
     createFile("topolino\0", buffer);
     printFileEntryList(buffer);
 
@@ -57,7 +57,10 @@ int main(int argc, char *argv[]) {
     printf("\n");
     printFileHandleTable();
 
-    closeFile(handle); */
+    closeFile(handle);
+
+    eraseFile(findFile("pippo\0", buffer), buffer);
+    printFileEntryList(buffer);
 
     listDir(buffer);
     createDir("pippo\0", buffer);
