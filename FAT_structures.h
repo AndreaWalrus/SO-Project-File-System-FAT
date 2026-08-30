@@ -50,7 +50,7 @@ static struct FileHandle FileHandleTable[MAX_OPENED_FILE];
 static int current_directory=ROOT_DIR;
 
 FATEntry init_fat(char* buffer); // Initializes the FAT and the FileEntry Directory
-fat_entry_t find_free_block(FATEntry fat); // Scans the FAT for the first available free block
+fat_entry_t find_free_block(FATEntry fat); // Scans the fat and returns the first free block found
 fat_entry_t allocate_block(FATEntry fat, fat_entry_t start_block); // Allocate a single block of the FAT
 fat_entry_t free_block(FATEntry fat, fat_entry_t block_index); // Frees a single block of the FAT
 fat_entry_t extend_chain(FATEntry fat, fat_entry_t start_block, unsigned int block_num); // Adds a block to the end of the chain
@@ -64,13 +64,12 @@ FileEntry getFileEntry(unsigned int file_index, char* buffer);
 int findFreeFileEntry(char* buffer);
 FileHandleEntry openFile(FileEntry file);
 int closeFile(FileHandleEntry handle);
-int findFile(const char* name, char* buffer);
 
 int write(FileHandleEntry handle, char* buffer, const void* data, size_t size);
 int read(FileHandleEntry handle, void* dest, char* buffer, size_t size);
 int seek(FileHandleEntry handle, char* buffer, unsigned int position);
 
-int find(const char* name, char* buffer, int is_directory);
+int find(const char* name, char* buffer, int is_directory, int local_search);
 
 int createDir(const char* name, char* buffer);
 int eraseDir(const char* name, char* buffer);

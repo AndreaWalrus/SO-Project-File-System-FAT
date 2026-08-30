@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
 
     printFileEntryList(buffer);
     
-    eraseFile(findFile("pluto\0", buffer), buffer);
+    eraseFile(find("pluto\0", buffer, 0, 0), buffer);
     printFileEntryList(buffer);
     printFAT(fat);
     
@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
 
     closeFile(handle);
 
-    eraseFile(findFile("pippo\0", buffer), buffer);
+    eraseFile(find("pippo\0", buffer, 0, 0), buffer);
     printFileEntryList(buffer);
 
     listDir(buffer);
