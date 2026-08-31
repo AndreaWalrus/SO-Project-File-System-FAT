@@ -62,7 +62,7 @@ int getOffset(unsigned int file_index);
 int getIndex(FileEntry file);
 FileEntry getFileEntry(unsigned int file_index, char* buffer);
 int findFreeFileEntry(char* buffer);
-FileHandleEntry openFile(FileEntry file);
+FileHandleEntry openFile(int file_index, char* buffer);
 int closeFile(FileHandleEntry handle);
 
 int write(FileHandleEntry handle, char* buffer, const void* data, size_t size);
@@ -76,8 +76,10 @@ int eraseDir(const char* name, char* buffer);
 int changeDir(const char* name, char* buffer);
 int listDir(char* buffer);
 
+int listFile(char* buffer);
+
 // Testing functions
-void printFAT(FATEntry fat);
-void printFile(FileEntry file);
-void printFileEntryList(char* buffer);
+void printFAT(char* buffer);
+void printFile(int file_index, char* buffer);
+void printFileEntry(char* buffer);
 void printFileHandleTable();

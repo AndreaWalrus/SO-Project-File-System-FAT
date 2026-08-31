@@ -257,12 +257,18 @@ int findFreeFileEntry(char* buffer){
     return -1;
 }
 
-FileHandleEntry openFile(FileEntry file) {
-    if (file == NULL) {
+FileHandleEntry openFile(int file_index, char* buffer) {
+    if (buffer == NULL) {
         fflush(stdout);
-        fprintf(stderr, "File is NULL\n");
+        fprintf(stderr, "Buffer is NULL\n");
         return NULL;
     }
+    if (file_index<0 || file_index>=BLOCKS_NUM) {
+        fflush(stdout);
+        fprintf(stderr, "File index out of Bounds\n");
+        return NULL;
+    }
+    FileEntry file = getFileEntry(file_index, buffer);
     for(int i=0; i<MAX_OPENED_FILE; i++){ // Searches for the first table entry available, and populates it
         if(!FileHandleTable[i].is_used){
             FileHandleTable[i].file_index=getIndex(file);
@@ -586,14 +592,29 @@ int listDir(char* buffer){
     }
 }
 
+int listFile(char* buffer){
+    if(buffer==NULL){
+        fflush(stdout);
+        fprintf(stderr, "Buffer is NULL\n");
+        return -1;
+    }
+    for(int i=0; i<BLOCKS_NUM; i++){
+        FileEntry file = getFileEntry(i, buffer);
+        if(file->is_used && file->parent_index==current_directory && !file->is_directory){
+            printf("%s\n", file->name);
+        }
+    }
+}
+
 // Testing functions
 
-void printFAT(FATEntry fat) {
-    if (fat == NULL) {
+void printFAT(char* buffer) {
+    if (buffer == NULL) {
         fflush(stdout);
-        fprintf(stderr, "FAT is NULL\n");
+        fprintf(stderr, "Buffer is NULL\n");
         return;
     }
+    FATEntry fat = (FATEntry) buffer;
     printf("-----------------\nFAT Entries:\n");
     for (int i = 0; i < BLOCKS_NUM; i++) {
         printf("[%d]: %d\n", i, fat[i]);
@@ -601,12 +622,13 @@ void printFAT(FATEntry fat) {
     printf("-----------------\n");
 }
 
-void printFile(FileEntry file){
-    if (file == NULL) {
+void printFile(int file_index, char* buffer){
+    if (file_index<0 || file_index>=BLOCKS_NUM) {
         fflush(stdout);
-        fprintf(stderr, "File is NULL\n");
+        fprintf(stderr, "File index out of bound\n");
         return;
     }
+    FileEntry file = getFileEntry(file_index, buffer);
     printf("File Name: %s\n", file->name);
     printf("Start Block: %hd\n", file->start_block);
     printf("Size: %u bytes\n", file->size);
@@ -615,7 +637,7 @@ void printFile(FileEntry file){
     printf("File index: %d\n", file->file_index);
 }
 
-void printFileEntryList(char* buffer){
+void printFileEntry(char* buffer){
     if(buffer == NULL){
         fflush(stdout);
         fprintf(stderr, "Buffer is NULL\n");
@@ -626,7 +648,7 @@ void printFileEntryList(char* buffer){
         FileEntry file = (FileEntry) (buffer+getOffset(i));
         if(file->is_used){
             printf("[%d]:\n", i);
-            printFile(getFileEntry(i, buffer));
+            printFile(i, buffer);
         }
     }
     printf("-----------------\n");
