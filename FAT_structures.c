@@ -1,5 +1,6 @@
 #include "FAT_structures.h"
 
+int current_directory;
 
 FATEntry init_fat(char* buffer){
     if (buffer == NULL) {
@@ -24,6 +25,7 @@ FATEntry init_fat(char* buffer){
         file->parent_index=ROOT_DIR;
         file->is_used=0; 
     }
+    current_directory = ROOT_DIR;
     return fat;  
 }
 
@@ -629,12 +631,14 @@ void printFile(int file_index, char* buffer){
         return;
     }
     FileEntry file = getFileEntry(file_index, buffer);
+    printf("-----------------\n");
     printf("File Name: %s\n", file->name);
     printf("Start Block: %hd\n", file->start_block);
     printf("Size: %u bytes\n", file->size);
     printf("Is Directory: %s\n", file->is_directory ? "Yes" : "No");
     printf("Is used: %s\n", file->is_used ? "Yes" : "No");
     printf("File index: %d\n", file->file_index);
+    printf("-----------------\n");
 }
 
 void printFileEntry(char* buffer){
@@ -655,10 +659,12 @@ void printFileEntry(char* buffer){
 }
 
 void printFileHandleTable(){
+    printf("-----------------\n");
     printf("File Handle Table:\n");
     for(int i=0; i<MAX_OPENED_FILE; i++){
         printf("File index: %d\n", FileHandleTable[i].file_index);
         printf("Position: %d\n", FileHandleTable[i].position);
         printf("Is used: %s\n", FileHandleTable[i].is_used ? "Yes" : "No");
     }
+    printf("-----------------\n");
 }
