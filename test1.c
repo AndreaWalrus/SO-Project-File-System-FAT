@@ -39,7 +39,7 @@ int test1(){
     char data[size];
     // Writes the alphabet in loop
     for(int i=0; i<size; i++){
-        data[i]=(char) ((i%25)+97);
+        data[i]=(char) ((i%26)+97);
     }
     write(handle, buffer, data, size);
     printFileHandleTable();
@@ -57,8 +57,10 @@ int test1(){
         if(i%32==0 && i!=0) printf("\n");
     }
     printf("\n");
-
+    printFile(find("pippo\0", buffer, 0, 0), buffer);
+    printFileHandleTable();
     closeFile(handle);
+    printFileHandleTable();
 
     eraseFile(find("pippo\0", buffer, 0, 0), buffer);
     printFileEntry(buffer);

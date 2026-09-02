@@ -19,7 +19,7 @@ int init_fat(char* buffer){
     for (int i = FAT_SIZE+FILE_ENTRY_BLOCKS; i < BLOCKS_NUM; i++) {
         fat[i] = FAT_FREE; // Set all the remaining blocks as free
     }
-    for(int i = 0; i<BLOCKS_NUM; i++){ // Inizialize all the file entries fields
+    for(int i = 0; i<BLOCKS_AVAILABLE; i++){ // Inizialize all the file entries fields
         FileEntry file = (FileEntry) (buffer+getOffset(i));
         strcpy(file->name,"\0");
         file->start_block=-1;
@@ -142,7 +142,7 @@ int erase_chain(FATEntry fat, fat_entry_t start_block) {
 // Helper functions
 
 int getOffset(unsigned int file_index){
-    if(file_index<0 || file_index>=BLOCKS_NUM){
+    if(file_index<0 || file_index>=BLOCKS_AVAILABLE){
         fflush(stdout);
         fprintf(stderr, "File index out of bounds\n");
         return -1;
@@ -170,7 +170,7 @@ int find(const char* name, char* buffer, int is_directory, int local_search){
         fprintf(stderr, "Name is NULL\n");
         return -1;
     }
-    for(int i=0;i<BLOCKS_NUM;i++){ // Loops on all the File Entries
+    for(int i=0;i<BLOCKS_AVAILABLE;i++){ // Loops on all the File Entries
         FileEntry file = getFileEntry(i, buffer);
         if(!file->is_used) continue;
         if(!local_search){
@@ -222,7 +222,7 @@ int createFile(const char* name, char* buffer) {
 
     FileEntry file;
     int pos;
-    for(int i = 0; i<BLOCKS_NUM; i++){ // Finds the first available FileEntry in buffer
+    for(int i = 0; i<BLOCKS_AVAILABLE; i++){ // Finds the first available FileEntry in buffer
         file = (FileEntry) (buffer+getOffset(i));
         if(file->is_used==0){
             if(DEBUG){
@@ -259,7 +259,7 @@ int eraseFile(int file_index, char* buffer) {
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
-    if(file_index<0 || file_index>BLOCKS_NUM){
+    if(file_index<0 || file_index>=BLOCKS_AVAILABLE){
         fflush(stdout);
         fprintf(stderr, "Index out of bound\n");
         return -1;
@@ -283,7 +283,7 @@ int eraseFile(int file_index, char* buffer) {
 }
 
 FileEntry getFileEntry(unsigned int file_index, char* buffer){
-    if(file_index>=BLOCKS_NUM){
+    if(file_index>=BLOCKS_AVAILABLE){
         fflush(stdout);
         fprintf(stderr, "Index out of range\n");
         return NULL;
@@ -302,7 +302,7 @@ int findFreeFileEntry(char* buffer){
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
-    for(int i=0; i<BLOCKS_NUM; i++){ // Scans the file entries for the first available one
+    for(int i=0; i<BLOCKS_AVAILABLE; i++){ // Scans the file entries for the first available one
         FileEntry file = getFileEntry(i, buffer);
         if(!file->is_used) return i;
     }
@@ -317,7 +317,7 @@ FileHandleEntry openFile(int file_index, char* buffer) {
         fprintf(stderr, "Buffer is NULL\n");
         return NULL;
     }
-    if (file_index<0 || file_index>=BLOCKS_NUM) {
+    if (file_index<0 || file_index>=BLOCKS_AVAILABLE) {
         fflush(stdout);
         fprintf(stderr, "File index out of Bounds\n");
         return NULL;
@@ -362,7 +362,7 @@ int write(FileHandleEntry handle, char* buffer, const void* data, size_t size){
         fprintf(stderr, "Handle or data is NULL\n");
         return -1;
     }
-    if(handle->file_index < 0 || handle->file_index >= BLOCKS_NUM) {
+    if(handle->file_index < 0 || handle->file_index >= BLOCKS_AVAILABLE) {
         fflush(stdout);
         fprintf(stderr, "File index out of bound\n");
         return -1; 
@@ -611,7 +611,7 @@ int listDir(char* buffer){
     if(current_directory!=ROOT_DIR){
         printf("../\n");
     }
-    for(int i=0; i<BLOCKS_NUM; i++){
+    for(int i=0; i<BLOCKS_AVAILABLE; i++){
         FileEntry file = getFileEntry(i, buffer);
         if(file->is_used && file->parent_index==current_directory && file->is_directory){
             printf("%s/\n", file->name);
@@ -625,7 +625,7 @@ int listFile(char* buffer){
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
-    for(int i=0; i<BLOCKS_NUM; i++){
+    for(int i=0; i<BLOCKS_AVAILABLE; i++){
         FileEntry file = getFileEntry(i, buffer);
         if(file->is_used && file->parent_index==current_directory && !file->is_directory){
             printf("%s\n", file->name);
@@ -650,7 +650,7 @@ void printFAT(char* buffer) {
 }
 
 void printFile(int file_index, char* buffer){
-    if (file_index<0 || file_index>=BLOCKS_NUM) {
+    if (file_index<0 || file_index>=BLOCKS_AVAILABLE) {
         fflush(stdout);
         fprintf(stderr, "File index out of bound\n");
         return;
@@ -673,7 +673,7 @@ void printFileEntry(char* buffer){
         return;
     }
     printf("-----------------\nFile Entry List:\n");
-    for(int i=0; i<BLOCKS_NUM; i++){
+    for(int i=0; i<BLOCKS_AVAILABLE; i++){
         FileEntry file = (FileEntry) (buffer+getOffset(i));
         if(file->is_used){
             printf("[%d]:\n", i);

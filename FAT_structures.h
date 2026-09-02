@@ -17,7 +17,7 @@ typedef int16_t fat_entry_t;
 
 #define FAT_SIZE ((BLOCKS_NUM*sizeof(fat_entry_t)+BLOCK_SIZE-1) / BLOCK_SIZE) // Number of blocks occupied by the FAT itself rounded up
 #define FILE_ENTRY_BLOCKS ((BLOCKS_NUM*FILE_ENTRY_SIZE) / BLOCK_SIZE) // Number of blocks occupied by the FileEntries, fixed amount based on the number of blocks
-#define BLOCKS_AVAILABLE (BLOCKS_NUM - FAT_SIZE-FILE_ENTRY_BLOCKS) // Number of blocks available for files and directories
+#define BLOCKS_AVAILABLE (BLOCKS_NUM - FAT_SIZE - FILE_ENTRY_BLOCKS) // Number of blocks available for files and directories
 
 #define FAT_FREE (fat_entry_t)-1 // Free block flag
 #define FAT_EOC  (fat_entry_t)-2 // End of chain flag
