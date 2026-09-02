@@ -2,18 +2,18 @@ CC=gcc
 LIBS=
 CFLAGS=-g -O0
 
-all: test
+all: main
 
 
 FAT_structures.o: FAT_structures.c FAT_structures.h
 	$(CC) $(CFLAGS) -c -o FAT_structures.o FAT_structures.c
 
 
-test.o: test.c FAT_structures.h
-	$(CC) $(CFLAGS) -c -o test.o test.c
+main.o: main.c FAT_structures.h
+	$(CC) $(CFLAGS) -c -o main.o main.c
 
-test: test.o FAT_structures.o
-	$(CC) $(CFLAGS) -o test test.o FAT_structures.o $(LIBS)
+main: main.o FAT_structures.o
+	$(CC) $(CFLAGS) -o main main.o FAT_structures.o $(LIBS)
 	rm -f *.o
 
 clean:

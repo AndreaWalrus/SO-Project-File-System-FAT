@@ -6,7 +6,6 @@
 #include <string.h>
 #include <errno.h>
 
-
 #define BLOCK_SIZE 512 // Blocks of 512 bytes
 #define BLOCKS_NUM 16 // Total number of blocks and FAT entries
 
@@ -48,6 +47,7 @@ struct FileHandle{
 typedef struct FileHandle *FileHandleEntry;
 static struct FileHandle FileHandleTable[MAX_OPENED_FILE];
 extern int current_directory; // Stores the current directory based on file indexes, ROOT_DIR for root
+extern int DEBUG; // 1 for debug printf
 
 FATEntry init_fat(char* buffer); // Initializes the FAT and the FileEntry Directory
 fat_entry_t find_free_block(FATEntry fat); // Scans the fat and returns the first free block found

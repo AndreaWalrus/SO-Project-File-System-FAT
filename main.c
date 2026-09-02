@@ -1,7 +1,14 @@
 #include <sys/mman.h>
 #include "FAT_structures.h"
 
+
 int main(int argc, char *argv[]) {
+
+    if(argc>1){
+        DEBUG=strtol(argv[1], NULL, 10);
+    }else{
+        DEBUG=0;
+    }
 
     char* buffer = mmap(NULL, BLOCK_SIZE * BLOCKS_NUM, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (buffer == MAP_FAILED) {
@@ -12,8 +19,11 @@ int main(int argc, char *argv[]) {
     // Initialize the FAT structure
 
     FATEntry fat = init_fat(buffer);
-    printf("FAT Size: %ld\n", FAT_SIZE);
-    printf("File Entries Size: %d\n", FILE_ENTRY_BLOCKS);
+    if(DEBUG){
+        printf("FAT Size: %ld blocks\n", FAT_SIZE);
+        printf("File Entries Size: %d blocks\n", FILE_ENTRY_BLOCKS);
+    }
+    printf("Main loop, type help for all available commands\n");
 
 /*     printFAT(fat);
     int entry = createFile("pippo\0", buffer);
@@ -89,8 +99,25 @@ int main(int argc, char *argv[]) {
         }
         else if(!strcmp(command, "help\0")){
             printf("Available commands:\n");
-            printf("-listDir: Lists all the directories in the current path\n");
-            printf("-changeDir: Changes current directory\n");
+            printf("-help: Lists all available commands\n");
+            printf("-exit: Exits the program\n");
+            printf("-createFile <name>: Creates a file\n");
+            printf("-eraseFile <name>: Erases a file\n");
+            printf("-listFile: Lists all files in the current path\n");
+            printf("-openFile <name>: Opens a file\n");
+            printf("-createDir <name>: Creates a directory\n");
+            printf("-eraseDir <name>: Erases a directory\n");
+            printf("-listDir: Lists all directories in the current path\n");
+            printf("-changeDir <name>: Changes the current directory\n");
+            printf("-printFAT: Prints the FAT\n");
+            printf("-printFile <name>: Prints file information\n");
+            printf("-printFileEntry: Prints all file entries\n");
+            printf("-printFHT: Prints the file handle table\n");
+            printf("\nFile mode commands (after openFile):\n");
+            printf("-write <text>: Writes text to the open file\n");
+            printf("-read <size>: Reads bytes from the open file\n");
+            printf("-seek <position>: Changes the file cursor position\n");
+            printf("-closeFile: Closes the open file\n");
         }
         else if(!strcmp(command, "createFile\0")){
             command = strtok(NULL, " \n");
@@ -139,7 +166,9 @@ int main(int argc, char *argv[]) {
                         }
                         seek(handle, buffer, wrote-1);
                         write(handle, buffer, "", 1);
+                        getFileEntry(handle->file_index, buffer)->size-=2;
                         wrote--;
+                        seek(handle, buffer, wrote);
                         printf("Wrote %d bytes\n", wrote);
                     }
                     else if(!strcmp(command, "read\0")){
@@ -149,9 +178,10 @@ int main(int argc, char *argv[]) {
                             continue;
                         }
                         size_t size = (size_t) strtoul(command,NULL, 10);
-                        char dest[size];
+                        char dest[size+1];
                         int bytes = read(handle, dest, buffer, size);
                         if(bytes==-1) continue;
+                        memcpy(dest+size, "\0", 1);
                         printf("%s\n", dest);
                     }
                     else if(!strcmp(command, "seek\0")){

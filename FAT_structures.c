@@ -1,6 +1,7 @@
 #include "FAT_structures.h"
 
 int current_directory;
+int DEBUG;
 
 FATEntry init_fat(char* buffer){
     if (buffer == NULL) {
@@ -161,7 +162,9 @@ int createFile(const char* name, char* buffer) {
     for(int i = 0; i<BLOCKS_NUM; i++){ // Finds the first available FileEntry in buffer
         file = (FileEntry) (buffer+getOffset(i));
         if(file->is_used==0){
-            //printf("Found available entry at position %d\n", i);
+            if(DEBUG){
+                printf("Found available entry at position %d\n", i);
+            }
             pos=i;
             break;
         }
@@ -181,7 +184,9 @@ int createFile(const char* name, char* buffer) {
     file->parent_index=current_directory;
 
     fat[start_block] = FAT_EOC;
-    printf("File %s created at block: %hd, index: %d\n", name, start_block, pos);
+    if(DEBUG){
+        printf("File %s created at block: %hd, index: %d\n", name, start_block, pos);
+    }
     return pos;
 }
 
@@ -200,7 +205,9 @@ int eraseFile(int file_index, char* buffer) {
     FileEntry file = getFileEntry(file_index, buffer);
     fat_entry_t start_block = file->start_block;
     int erased = erase_chain(fat, start_block);
-    //printf("Erased %d blocks\n", erased);
+    if(DEBUG){
+        printf("Erased %d blocks\n", erased);
+    }
 
     // Clears file's attributes
     memset(file->name, 0, 48);
@@ -468,20 +475,26 @@ int find(const char* name, char* buffer, int is_directory, int local_search){
         if(!file->is_used) continue;
         if(!local_search){
             if(!strcmp(file->name, name)){
-                printf("File found at entry %d\n", i);
+                if(DEBUG){
+                    printf("File found at entry %d\n", i);
+                }
                 return i;
             }
         }else{
             if(file->parent_index==current_directory && file->is_directory==is_directory){
                 if(!strcmp(file->name, name)){
-                    printf("File/Dir found at entry %d\n", i);
+                    if(DEBUG){
+                        printf("File/Dir found at entry %d\n", i);
+                    }
                 return i;
                 }
             }
         }
         
     }
-    printf("File/Dir not found\n");
+    if(DEBUG){
+        printf("File/Dir not found\n");
+    }
     return -1;
 }
 
@@ -545,7 +558,9 @@ int eraseDir(const char* name, char* buffer){
     dir->file_index=-1;
     dir->parent_index=ROOT_DIR;
     dir->is_used=0;
-    printf("Removed directory\n");
+    if(DEBUG){
+        printf("Removed directory\n");
+    }
     return 0;
 }
 
