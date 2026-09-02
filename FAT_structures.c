@@ -3,11 +3,13 @@
 int current_directory;
 int DEBUG;
 
-FATEntry init_fat(char* buffer){
+// Backbone functions
+
+int init_fat(char* buffer){
     if (buffer == NULL) {
         fflush(stdout);
         fprintf(stderr, "Buffer is NULL\n");
-        return NULL;
+        return -1;
     }
     memset(buffer, 0, BLOCK_SIZE*BLOCKS_NUM); // Set all the mapped buffer to 0 for precaution
     FATEntry fat = (FATEntry)buffer;
@@ -27,7 +29,7 @@ FATEntry init_fat(char* buffer){
         file->is_used=0; 
     }
     current_directory = ROOT_DIR;
-    return fat;  
+    return 0;  
 }
 
 fat_entry_t find_free_block(FATEntry fat) {
@@ -137,6 +139,67 @@ int erase_chain(FATEntry fat, fat_entry_t start_block) {
     return i;
 }
 
+// Helper functions
+
+int getOffset(unsigned int file_index){
+    if(file_index<0 || file_index>=BLOCKS_NUM){
+        fflush(stdout);
+        fprintf(stderr, "File index out of bounds\n");
+        return -1;
+    }
+    return (FAT_SIZE*BLOCK_SIZE)+(file_index*FILE_ENTRY_SIZE);
+}
+
+int getIndex(FileEntry file){
+    if(file==NULL){
+        fflush(stdout);
+        fprintf(stderr, "File is NULL\n");
+        return -1;
+    }
+    return file->file_index;
+}
+
+int find(const char* name, char* buffer, int is_directory, int local_search){
+    if (buffer == NULL) {
+        fflush(stdout);
+        fprintf(stderr, "Buffer is NULL\n");
+        return -1;
+    }
+    if (name == NULL) {
+        fflush(stdout);
+        fprintf(stderr, "Name is NULL\n");
+        return -1;
+    }
+    for(int i=0;i<BLOCKS_NUM;i++){ // Loops on all the File Entries
+        FileEntry file = getFileEntry(i, buffer);
+        if(!file->is_used) continue;
+        if(!local_search){
+            if(!strcmp(file->name, name)){
+                if(DEBUG){
+                    printf("File found at entry %d\n", i);
+                }
+                return i;
+            }
+        }else{
+            if(file->parent_index==current_directory && file->is_directory==is_directory){
+                if(!strcmp(file->name, name)){
+                    if(DEBUG){
+                        printf("File/Dir found at entry %d\n", i);
+                    }
+                return i;
+                }
+            }
+        }
+        
+    }
+    if(DEBUG){
+        printf("File/Dir not found\n");
+    }
+    return -1;
+}
+
+// File functions
+
 int createFile(const char* name, char* buffer) {
     if (buffer == NULL) {
         fflush(stdout);
@@ -219,24 +282,6 @@ int eraseFile(int file_index, char* buffer) {
     return 0;
 }
 
-int getOffset(unsigned int file_index){
-    if(file_index<0 || file_index>=BLOCKS_NUM){
-        fflush(stdout);
-        fprintf(stderr, "File index out of bounds\n");
-        return -1;
-    }
-    return (FAT_SIZE*BLOCK_SIZE)+(file_index*FILE_ENTRY_SIZE);
-}
-
-int getIndex(FileEntry file){
-    if(file==NULL){
-        fflush(stdout);
-        fprintf(stderr, "File is NULL\n");
-        return -1;
-    }
-    return file->file_index;
-}
-
 FileEntry getFileEntry(unsigned int file_index, char* buffer){
     if(file_index>=BLOCKS_NUM){
         fflush(stdout);
@@ -303,11 +348,13 @@ int closeFile(FileHandleEntry handle) {
         return -1;
     }
     // Clears file handle attributes
-    handle->file_index = -1;
+    handle->file_index = 0;
     handle->position = 0;
     handle->is_used = 0;
     return 0;
 }
+
+// Data functions
 
 int write(FileHandleEntry handle, char* buffer, const void* data, size_t size){
     if(handle == NULL || data == NULL) {
@@ -459,44 +506,7 @@ int seek(FileHandleEntry handle, char* buffer, unsigned int position){
     return 0;
 }
 
-int find(const char* name, char* buffer, int is_directory, int local_search){
-    if (buffer == NULL) {
-        fflush(stdout);
-        fprintf(stderr, "Buffer is NULL\n");
-        return -1;
-    }
-    if (name == NULL) {
-        fflush(stdout);
-        fprintf(stderr, "Name is NULL\n");
-        return -1;
-    }
-    for(int i=0;i<BLOCKS_NUM;i++){ // Loops on all the File Entries
-        FileEntry file = getFileEntry(i, buffer);
-        if(!file->is_used) continue;
-        if(!local_search){
-            if(!strcmp(file->name, name)){
-                if(DEBUG){
-                    printf("File found at entry %d\n", i);
-                }
-                return i;
-            }
-        }else{
-            if(file->parent_index==current_directory && file->is_directory==is_directory){
-                if(!strcmp(file->name, name)){
-                    if(DEBUG){
-                        printf("File/Dir found at entry %d\n", i);
-                    }
-                return i;
-                }
-            }
-        }
-        
-    }
-    if(DEBUG){
-        printf("File/Dir not found\n");
-    }
-    return -1;
-}
+// Directory functions
 
 int createDir(const char* name, char* buffer){
     if(name==NULL){
@@ -623,7 +633,7 @@ int listFile(char* buffer){
     }
 }
 
-// Testing functions
+// Printing functions
 
 void printFAT(char* buffer) {
     if (buffer == NULL) {

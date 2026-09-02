@@ -49,7 +49,7 @@ static struct FileHandle FileHandleTable[MAX_OPENED_FILE];
 extern int current_directory; // Stores the current directory based on file indexes, ROOT_DIR for root
 extern int DEBUG; // 1 for debug printf
 
-FATEntry init_fat(char* buffer); // Initializes the FAT and the FileEntry Directory
+int init_fat(char* buffer); // Initializes the FAT and the FileEntry Directory
 fat_entry_t find_free_block(FATEntry fat); // Scans the fat and returns the first free block found
 fat_entry_t allocate_block(FATEntry fat, fat_entry_t start_block); // Allocate a single block of the FAT
 fat_entry_t free_block(FATEntry fat, fat_entry_t block_index); // Frees a single block of the FAT

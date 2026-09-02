@@ -1,6 +1,7 @@
 #include <sys/mman.h>
 #include "FAT_structures.h"
 
+int test1();
 
 int main(int argc, char *argv[]) {
 
@@ -10,6 +11,8 @@ int main(int argc, char *argv[]) {
         DEBUG=0;
     }
 
+    // Maps the buffer to simulate memory
+
     char* buffer = mmap(NULL, BLOCK_SIZE * BLOCKS_NUM, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (buffer == MAP_FAILED) {
         fprintf(stderr, "mmap failed: %s\n", strerror(errno));
@@ -18,66 +21,16 @@ int main(int argc, char *argv[]) {
 
     // Initialize the FAT structure
 
-    FATEntry fat = init_fat(buffer);
+    int fat = init_fat(buffer);
+    if(fat==-1){
+        return -1;
+    }
+
     if(DEBUG){
         printf("FAT Size: %ld blocks\n", FAT_SIZE);
         printf("File Entries Size: %d blocks\n", FILE_ENTRY_BLOCKS);
     }
     printf("Main loop, type help for all available commands\n");
-
-/*     printFAT(fat);
-    int entry = createFile("pippo\0", buffer);
-    int offset = getOffset(entry);
-    FileEntry file = (FileEntry)(buffer + offset);
-
-    printFAT(fat);
-    createFile("pluto\0", buffer);
-    createFile("paperone\0", buffer);
-
-    printFileEntryList(buffer);
-    
-    eraseFile(find("pluto\0", buffer, 0, 0), buffer);
-    printFileEntryList(buffer);
-    printFAT(fat);
-    
-    createFile("topolino\0", buffer);
-    printFileEntryList(buffer);
-
-    FileHandleEntry handle = openFile(file);
-    printFileHandleTable();
-    int data[550];
-    for(int i=0; i<550; i++){
-        data[i]=i;
-    }
-    write(handle, buffer, data, 550);
-    printFileHandleTable();
-    printFAT(fat);
-    printFileEntryList(buffer);
-
-    seek(handle, buffer, 0);
-    printFileHandleTable();
-    char results[550];
-    read(handle, (void*) results, buffer, 550);
-    printf("Data:\n");
-    for(int i=0; i<550; i++){
-        printf("%u ", (unsigned char)results[i]);
-        if(i%32==0 && i!=0) printf("\n");
-    }
-    printf("\n");
-    printFileHandleTable();
-
-    closeFile(handle);
-
-    eraseFile(find("pippo\0", buffer, 0, 0), buffer);
-    printFileEntryList(buffer);
-
-    listDir(buffer);
-    createDir("pippo\0", buffer);
-    listDir(buffer);
-    changeDir("pippo\0", buffer);
-    listDir(buffer);
-
-    printFileEntryList(buffer); */
 
     // Active loop
     while(1){
@@ -101,15 +54,16 @@ int main(int argc, char *argv[]) {
             printf("Available commands:\n");
             printf("-help: Lists all available commands\n");
             printf("-exit: Exits the program\n");
-            printf("-createFile <name>: Creates a file\n");
+            printf("-test1: Runs a predetermined test, it uses a separate buffer from the main loop\n");
+            printf("\n-createFile <name>: Creates a file\n");
             printf("-eraseFile <name>: Erases a file\n");
             printf("-listFile: Lists all files in the current path\n");
             printf("-openFile <name>: Opens a file\n");
-            printf("-createDir <name>: Creates a directory\n");
+            printf("\n-createDir <name>: Creates a directory\n");
             printf("-eraseDir <name>: Erases a directory\n");
             printf("-listDir: Lists all directories in the current path\n");
             printf("-changeDir <name>: Changes the current directory\n");
-            printf("-printFAT: Prints the FAT\n");
+            printf("\n-printFAT: Prints the FAT\n");
             printf("-printFile <name>: Prints file information\n");
             printf("-printFileEntry: Prints all file entries\n");
             printf("-printFHT: Prints the file handle table\n");
@@ -232,6 +186,10 @@ int main(int argc, char *argv[]) {
         }
         else if(!strcmp(command, "listFile\0")){
             listFile(buffer);
+        }
+        else if(!strcmp(command, "test1\0")){
+            test1();
+            current_directory=ROOT_DIR;
         }
         else if(!strcmp(command, "printFAT\0")){
             printFAT(buffer);
