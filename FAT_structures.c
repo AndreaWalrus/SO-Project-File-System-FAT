@@ -159,6 +159,35 @@ int getIndex(FileEntry file){
     return file->file_index;
 }
 
+FileEntry getFileEntry(unsigned int file_index, char* buffer){
+    if(file_index>=BLOCKS_AVAILABLE){
+        fflush(stdout);
+        fprintf(stderr, "Index out of range\n");
+        return NULL;
+    }
+    if(buffer==NULL){
+        fflush(stdout);
+        fprintf(stderr, "buffer is NULL\n");
+        return NULL;
+    }
+    return (FileEntry) (buffer+getOffset(file_index));
+}
+
+int findFreeFileEntry(char* buffer){
+    if(buffer==NULL){
+        fflush(stdout);
+        fprintf(stderr, "Buffer is NULL\n");
+        return -1;
+    }
+    for(int i=0; i<BLOCKS_AVAILABLE; i++){ // Scans the file entries for the first available one
+        FileEntry file = getFileEntry(i, buffer);
+        if(!file->is_used) return i;
+    }
+    fflush(stdout);
+    fprintf(stderr, "Free entry not available\n");
+    return -1;
+}
+
 int find(const char* name, char* buffer, int is_directory, int local_search){
     if (buffer == NULL) {
         fflush(stdout);
@@ -280,35 +309,6 @@ int eraseFile(int file_index, char* buffer) {
     file->parent_index=ROOT_DIR;
     file->is_used=0;
     return 0;
-}
-
-FileEntry getFileEntry(unsigned int file_index, char* buffer){
-    if(file_index>=BLOCKS_AVAILABLE){
-        fflush(stdout);
-        fprintf(stderr, "Index out of range\n");
-        return NULL;
-    }
-    if(buffer==NULL){
-        fflush(stdout);
-        fprintf(stderr, "buffer is NULL\n");
-        return NULL;
-    }
-    return (FileEntry) (buffer+getOffset(file_index));
-}
-
-int findFreeFileEntry(char* buffer){
-    if(buffer==NULL){
-        fflush(stdout);
-        fprintf(stderr, "Buffer is NULL\n");
-        return -1;
-    }
-    for(int i=0; i<BLOCKS_AVAILABLE; i++){ // Scans the file entries for the first available one
-        FileEntry file = getFileEntry(i, buffer);
-        if(!file->is_used) return i;
-    }
-    fflush(stdout);
-    fprintf(stderr, "Free entry not available\n");
-    return -1;
 }
 
 FileHandleEntry openFile(int file_index, char* buffer) {
@@ -601,38 +601,6 @@ int changeDir(const char* name, char* buffer){
     return 0;
 }
 
-int listDir(char* buffer){
-    if(buffer==NULL){
-        fflush(stdout);
-        fprintf(stderr, "Buffer is NULL\n");
-        return -1;
-    }
-    printf("./\n");
-    if(current_directory!=ROOT_DIR){
-        printf("../\n");
-    }
-    for(int i=0; i<BLOCKS_AVAILABLE; i++){
-        FileEntry file = getFileEntry(i, buffer);
-        if(file->is_used && file->parent_index==current_directory && file->is_directory){
-            printf("%s/\n", file->name);
-        }
-    }
-}
-
-int listFile(char* buffer){
-    if(buffer==NULL){
-        fflush(stdout);
-        fprintf(stderr, "Buffer is NULL\n");
-        return -1;
-    }
-    for(int i=0; i<BLOCKS_AVAILABLE; i++){
-        FileEntry file = getFileEntry(i, buffer);
-        if(file->is_used && file->parent_index==current_directory && !file->is_directory){
-            printf("%s\n", file->name);
-        }
-    }
-}
-
 // Printing functions
 
 void printFAT(char* buffer) {
@@ -693,3 +661,36 @@ void printFileHandleTable(){
     }
     printf("-----------------\n");
 }
+
+int listFile(char* buffer){
+    if(buffer==NULL){
+        fflush(stdout);
+        fprintf(stderr, "Buffer is NULL\n");
+        return -1;
+    }
+    for(int i=0; i<BLOCKS_AVAILABLE; i++){
+        FileEntry file = getFileEntry(i, buffer);
+        if(file->is_used && file->parent_index==current_directory && !file->is_directory){
+            printf("%s\n", file->name);
+        }
+    }
+}
+
+int listDir(char* buffer){
+    if(buffer==NULL){
+        fflush(stdout);
+        fprintf(stderr, "Buffer is NULL\n");
+        return -1;
+    }
+    printf("./\n");
+    if(current_directory!=ROOT_DIR){
+        printf("../\n");
+    }
+    for(int i=0; i<BLOCKS_AVAILABLE; i++){
+        FileEntry file = getFileEntry(i, buffer);
+        if(file->is_used && file->parent_index==current_directory && file->is_directory){
+            printf("%s/\n", file->name);
+        }
+    }
+}
+
