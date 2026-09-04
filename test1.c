@@ -77,10 +77,11 @@ int test1(){
 
     // Cleanup
 
-    munmap(buffer, BLOCK_SIZE * BLOCKS_NUM);
-    if(errno){
-        fprintf(stderr, "munmap error");
-        return -1;
+    int res = munmap(buffer, BLOCK_SIZE * BLOCKS_NUM);
+    if(res == -1){
+        fflush(stdin);
+        fprintf(stderr, "munmap error: %s\n", strerror(errno));
+        return 1;
     }
 
     return 0;

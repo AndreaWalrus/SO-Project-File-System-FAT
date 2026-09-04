@@ -77,6 +77,7 @@ int seek(FileHandleEntry handle, char* buffer, unsigned int position); // Moves 
 // Directory functions
 int createDir(const char* name, char* buffer); // Creates a directory in the current directory
 int eraseDir(const char* name, char* buffer); // Deletes a directory in the current directory
+int eraseDir_helper(FileEntry dir, char* buffer);
 int changeDir(const char* name, char* buffer); // Changes current directory, similar usage of bash cd
 
 // Printing functions

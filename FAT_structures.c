@@ -128,6 +128,7 @@ int erase_chain(FATEntry fat, fat_entry_t start_block) {
             fprintf(stderr, "Block Reserved or free\n");
             return -1;
     }
+    memset(buffer+(start_block*BLOCK_SIZE), 0, BLOCK_SIZE);
     fat[start_block] = FAT_FREE; // Frees the last block
     i++;
     return i;
@@ -192,7 +193,7 @@ int find(const char* name, char* buffer, int is_directory){
     for(int i=0;i<FILE_ENTRY_NUM;i++){ // Loops on all the Entries of the current directory
         FileEntry file = getEntry(i, current_directory->start_block, buffer);
         if(!file->is_used) continue;
-        if(!strcmp(file->name, name)){
+        if(!strcmp(file->name, name) && file->is_directory==is_directory){
             if(DEBUG){
                 printf("File found at entry %d\n", i);
             }
@@ -218,7 +219,7 @@ int createFile(const char* name, char* buffer) {
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
-    int res = find(name, buffer, 1);
+    int res = find(name, buffer, 0);
 
     if(res!=-1){
         fflush(stdout);
@@ -420,7 +421,7 @@ int fs_read(FileHandleEntry handle, void* dest, char* buffer, size_t size){
         fprintf(stderr, "Buffer is NULL\n");
         return -1;
     }
-    if(size < 0 || size >= handle->file->size){
+    if(size < 0 || size > handle->file->size){
         fflush(stdout);
         fprintf(stderr, "Size out of bounds\n");
         return -1;
@@ -687,7 +688,6 @@ void printEntries(char* buffer){
             printFile(i, buffer);
         }
     }
-    printf("-----------------\n");
 }
 
 void printFileHandleTable(){

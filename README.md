@@ -8,7 +8,8 @@ Matricola: 1987422
 ## Introduction
 
 This is a project for the academic course Sistemi Operativi 2022/23 at Sapienza Università di Roma.  
-This project written in C simulates a FAT file system by mapping a buffer in memory, and implementing all the necessary structures and data onto the buffer.
+This project written in C simulates a FAT file system by mapping a buffer in memory, and implementing all the necessary structures and data onto the buffer.  
+The buffer is saved in `FileSystem.img` at the end of main, and reopened automatically at the next program call.
 
 ## FileSystem Layout
 
@@ -17,10 +18,11 @@ The file system is split in the following way:
 
 <br>
 
-The size of the **FAT** and **File Entry** segment depends on the `BLOCK_NUM` and `BLOCKS_SIZE`; both can occupy more than one block.  
+The size of the **FAT** segment depends on the `BLOCK_NUM` and `BLOCKS_SIZE`;  
 They are currently set as respectively 16 and 512, as it is a manageable size for a demo, but they can be freely modified, obviously setting
 them to a power of 2 and its multiples minimizes the wasted space.  
-For the demo the **FAT** occupies 1 block, and the **File Entries** 2 blocks.  
+For the demo the **FAT** occupies 1 block.  
+The Root directory Entry is in the first available block, with the next block as its starting block.  
 
 
 ## FAT
@@ -45,20 +47,24 @@ A file or a directory is stored in the buffer in the form of a struct called *Fi
 
 The size of the struct is 64 bytes, so for the demo, 8 File Entries are able to fit in a single block.
 
-Every file entry has an index assigned, from 0 to **BLOCKS_AVAILABLE**, since the entries are concurrent in memory every 64 Bytes, this makes it easier to identify and pass as arguments, with just a couple of helper functions  
+Every file entry has an index assigned, from 0 to **FILE_ENTRY_NUM**, since the entries are concurrent in memory every 64 Bytes, this makes it easier to identify and pass as arguments, with just a couple of helper functions
 
 <img src="imgs/File_helper.png" width="800" height="150">   
   
 <br>
 
-Both files and directories are stored the same way and in the same segment, only the flag `is_directory` differentiates a file and a dir.  
-Another difference between the two is that file can store data and have fat blocks assigned to them while directories can't.
+Both files and directories are stored the same way, in the `start_block` of its parent directory, only the flag `is_directory` differentiates a file and a dir.
+
+#### Current limitation
+
+The current implementation restricts file and dir entries for a directory to 8, exactly the number of Entries that fit in a block in the Demo.
+Future updates will include the possibility of expanding the entries to multiple blocks, in order to have a truly dynamic system.
 
 ### File Handles
 
 A file handle is a struct that contains the index of a file, and the cursor position in said file, as long as it is open.
 
-<img src="imgs/File_handle.png" width="600" height="160">  
+<img src="imgs/File_handle.png" width="400" height="160">  
 
 <br>
 
@@ -81,14 +87,14 @@ Once a file is opened, data functions are available to perform the most basic ac
 
 <br>
 
-The *write* function can extend the fat chain of a file to the next block available if the data is too large; similarly the *read* function traverses the file's data across blocks if needed.
+The *fs_write* function can extend the fat chain of a file to the next block available if the data is too large; similarly the *fs_read* function traverses the file's data across blocks if needed.
 The functions support mainly char and strings type of data.
 
 ## Main
 
 The main is based around a pseudo "infinite" loop that simulates an extremely simplified version of bash, its function is to test all the various structures and functions organically.  
 
-To simulate bash, there is an *extern* variable called `current_directory` that keeps track of the directory we currently reside in; apart from the root directory that has the value `ROOT_DIR=-1`, `current_directory` can hold any `file_index` as its value (Obviously the index must be of a Directory and not a File).
+To simulate bash, there is an *extern* variable called `current_directory` that keeps track of the directory we currently reside in;`current_directory` can hold any `FileEntry` as its value (Obviously the entry must be of a Directory and not a File).
 
 ## Usage
 

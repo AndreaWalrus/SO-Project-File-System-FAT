@@ -53,7 +53,6 @@ int main(int argc, char *argv[]) {
     if(DEBUG){
         printf("FAT Size: %ld blocks\n", FAT_SIZE);
         printf("File entry num: %d blocks\n", FILE_ENTRY_NUM);
-        printf("Sizeof file:%ld\n", sizeof(struct File));
     }
 
     // Initialize the FAT structure
