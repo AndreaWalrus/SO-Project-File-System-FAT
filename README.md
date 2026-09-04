@@ -98,7 +98,9 @@ To simulate bash, there is an *extern* variable called `current_directory` that 
 
 ## Usage
 
-After running `make`, you can execute the main program by calling `./main`, by default debug options are disabled, to turn them on call `./main 1`, it enables a few prints in various functions.
+After running `make`, you can execute the main program by calling `./main`, by default debug options are disabled, to turn them on call `./main 1`, it enables a few prints in various functions.  
+
+**N.B.** `make clean` also erases `FileSystem.img`
 
 Using the available commands let you test freely most of the functions:
 
