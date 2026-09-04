@@ -65,7 +65,6 @@ int main(int argc, char *argv[]) {
 
     if(DEBUG){
         printf("FAT Size: %ld blocks\n", FAT_SIZE);
-        printf("File Entries Size: %d blocks\n", FILE_ENTRY_BLOCKS);
     }
     printf("Main loop, type help for all available commands\n");
 
@@ -124,8 +123,8 @@ int main(int argc, char *argv[]) {
                 printf("Invalid argument\n");
                 continue;
             }
-            int res = find(name, buffer, 0, 0);
-            if(res>=0) eraseFile(res, buffer);
+            int res = find(name, buffer, 0);
+            if(res>=0) eraseFile(getEntry(res, current_directory->start_block, buffer), buffer);
         }
         else if(!strcmp(command, "openFile\0")){
             char* name = strtok(NULL, " \n");
@@ -133,7 +132,7 @@ int main(int argc, char *argv[]) {
                 printf("Invalid argument\n");
                 continue;
             }
-            int res = find(name, buffer, 0, 0);
+            int res = find(name, buffer, 0);
             FileHandleEntry handle;
             if(res>=0){
                 handle = openFile(res, buffer);
@@ -157,7 +156,7 @@ int main(int argc, char *argv[]) {
                         }
                         seek(handle, buffer, wrote-1);
                         fs_write(handle, buffer, "", 1);
-                        getFileEntry(handle->file_index, buffer)->size-=2;
+                        handle->file->size-=2;
                         wrote--;
                         seek(handle, buffer, wrote);
                         printf("Wrote %d bytes\n", wrote);
@@ -237,7 +236,7 @@ int main(int argc, char *argv[]) {
                 printf("Invalid argument\n");
                 continue;
             }
-            int res = find(name, buffer, 0, 0);
+            int res = find(name, buffer, 0);
             if(res>=0) printFile(res,buffer);
         }
         else if(!strcmp(command, "printFileEntry\0")){

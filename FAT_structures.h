@@ -6,67 +6,65 @@
 #include <string.h>
 #include <errno.h>
 
-#define BLOCK_SIZE 512 // Blocks of 512 bytes
+#define BLOCK_SIZE 512 // Must be at least FILE_ENTRY_SIZE Bytes
 #define BLOCKS_NUM 16 // Total number of blocks and FAT entries
 
 typedef int16_t fat_entry_t;
 
-// File structure size in buffer: 48 bytes for name + 2 bytes for start_block + 4 bytes for size + 1 byte for is_directory + 1 for is_used + 4 bytes for file_index + 4 bytes for parent_index = 64 bytes
+// File structure size in buffer: 44 bytes for name + 2 bytes for start_block + 4 bytes for size + 1 byte for is_directory + 1 for is_used + 4 bytes for file_index + 8 bytes for parent_index = 64 bytes
 #define FILE_ENTRY_SIZE 64
 #define MAX_OPENED_FILE 4 // Arbitrary number, must be < BLOCKS_NUM
 
 #define FAT_SIZE ((BLOCKS_NUM*sizeof(fat_entry_t)+BLOCK_SIZE-1) / BLOCK_SIZE) // Number of blocks occupied by the FAT itself rounded up
-#define FILE_ENTRY_BLOCKS ((BLOCKS_NUM*FILE_ENTRY_SIZE) / BLOCK_SIZE) // Number of blocks occupied by the FileEntries, fixed amount based on the number of blocks
-#define BLOCKS_AVAILABLE (BLOCKS_NUM - FAT_SIZE - FILE_ENTRY_BLOCKS) // Number of blocks available for files and directories
+#define FILE_ENTRY_NUM (BLOCK_SIZE / FILE_ENTRY_SIZE) // Number of file/dir entries that fit in a single block
+#define BLOCKS_AVAILABLE (BLOCKS_NUM - FAT_SIZE - 1) // Number of blocks available for files and directories
 
 #define FAT_FREE (fat_entry_t)-1 // Free block flag
 #define FAT_EOC  (fat_entry_t)-2 // End of chain flag
 #define FAT_RSVD (fat_entry_t)-3 // Reserved blocks for the FAT itself
 
-#define ROOT_DIR -1 // Root directory index
+#define ROOT_DIR (FileEntry) (buffer+(FAT_SIZE*BLOCK_SIZE)) // Root directory entry
 
 struct File{
-    char name[48];
+    char name[44];
     fat_entry_t start_block; // Starting block of the chain
     uint8_t is_directory; // 1 if directory, 0 if file
     uint8_t is_used; // 1 if yes, 0 otherwise
     unsigned int size; // in bytes
-    unsigned int file_index; // index of the file in the FileEntries list
-    int parent_index; // index of parent directory
+    unsigned int file_index; // index of the file in the current directory entry list
+    FileEntry parent_dir; // Entry of parent directory
 };
 
 typedef fat_entry_t *FATEntry;
 typedef struct File *FileEntry;
 
 struct FileHandle{
-    unsigned int file_index; // Index position of the opened file in the FileEntries list
+    FileEntry file; // Entry of the opened file
     unsigned int position; // Cursor position
     uint8_t is_used; // 1 if yes, 0 otherwise
 };
 
 typedef struct FileHandle *FileHandleEntry;
 static struct FileHandle FileHandleTable[MAX_OPENED_FILE];
-extern int current_directory; // Stores the current directory based on file indexes, ROOT_DIR for root
+extern FileEntry current_directory; // Stores the current directory entry
 extern int DEBUG; // 1 for debug printf
 
 // Backbone functions
-int init_fat(char* buffer); // Initializes the FAT and the FileEntry Directory
+int init_fat(char* buffer); // Initializes the FAT and the Root entry
 fat_entry_t find_free_block(FATEntry fat); // Scans the fat and returns the first free block found
 fat_entry_t allocate_block(FATEntry fat, fat_entry_t start_block); // Allocate a single block of the FAT
-fat_entry_t free_block(FATEntry fat, fat_entry_t block_index); // Frees a single block of the FAT
 fat_entry_t extend_chain(FATEntry fat, fat_entry_t start_block, unsigned int block_num); // Adds block_num blocks to the end of the chain
-int erase_chain(FATEntry fat, fat_entry_t start_block); // Removes the entire chain, returns the number of blocks erased
+int erase_chain(FATEntry fat, fat_entry_t start_block); // Removes the entire chain, and clears the block, returns the number of blocks erased
 
 // Helper functions
-int getOffset(unsigned int file_index); // Returns the byte offset of the FileEntry based on the file index
 int getIndex(FileEntry file); // Returns the index from a file entry
-FileEntry getFileEntry(unsigned int file_index, char* buffer); // Returns a file entry from an index
-int findFreeFileEntry(char* buffer); // Returns the index of the first available File Entry
-int find(const char* name, char* buffer, int is_directory, int local_search); // Returns the index of a file or dir with the wanted name. Local search restricts the search in the current directory.
+FileEntry getEntry(unsigned int index, fat_entry_t start_block, char* buffer); // Returns a file entry from an index and a starting block
+int findFreeEntry(char* buffer); // Returns the index of the first available File Entry in the current directory
+int find(const char* name, char* buffer, int is_directory); // Returns the index of a file or dir with the wanted name
 
 // File functions
-int createFile(const char* name, char* buffer); // Create a file on the first available file entry and free block, returns index of the file entry list
-int eraseFile(int file_index, char* buffer); // Erases the file with the corresponding index, and wipes the data in the blocks previously owned by the file
+int createFile(const char* name, char* buffer); // Create a file on the first available entry, in the current directory, and free block, returns index of entry list
+int eraseFile(FileEntry file, char* buffer); // Erases the file and wipes the data in the blocks previously owned by the file
 FileHandleEntry openFile(int file_index, char* buffer); // Returns an handle of the file opened, stores the handle in the FileHandleTable
 int closeFile(FileHandleEntry handle); // Closes the handle and frees the Table entry
 
@@ -83,8 +81,8 @@ int changeDir(const char* name, char* buffer); // Changes current directory, sim
 
 // Printing functions
 void printFAT(char* buffer); // Prints the FAT Table
-void printFile(int file_index, char* buffer); // Prints a single File Entry
-void printFileEntry(char* buffer); // Prints all the File Entries tagged as used
+void printFile(int file_index, char* buffer); // Prints a single File Entry in the current directory
+void printEntries(char* buffer); // Prints all the Entries tagged as used in the current directory
 void printFileHandleTable(); // Prints the File Handle Table
 int listDir(char* buffer); // Lists all the directories in the current directory
 int listFile(char* buffer); // Lists all the files in the current directory
