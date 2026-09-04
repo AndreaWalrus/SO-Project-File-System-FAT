@@ -41,7 +41,7 @@ int test1(){
     for(int i=0; i<size; i++){
         data[i]=(char) ((i%26)+97);
     }
-    write(handle, buffer, data, size);
+    fs_write(handle, buffer, data, size);
     printFileHandleTable();
     printFAT(buffer);
     printFileEntry(buffer);
@@ -50,7 +50,7 @@ int test1(){
     printFileHandleTable();
 
     char results[550];
-    read(handle, (void*) results, buffer, size);
+    fs_read(handle, (void*) results, buffer, size);
     printf("Data:\n");
     for(int i=0; i<550; i++){
         printf("%c", results[i]);

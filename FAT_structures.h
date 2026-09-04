@@ -71,9 +71,9 @@ FileHandleEntry openFile(int file_index, char* buffer); // Returns an handle of 
 int closeFile(FileHandleEntry handle); // Closes the handle and frees the Table entry
 
 // Data functions
-int write(FileHandleEntry handle, char* buffer, const void* data, size_t size); // Writes data in the file blocks,
+int fs_write(FileHandleEntry handle, char* buffer, const void* data, size_t size); // Writes data in the file blocks,
 // keeps track of the written bytes in the handle->position, if the blocks are not enough it extends the fat chain. Returns bytes written
-int read(FileHandleEntry handle, void* dest, char* buffer, size_t size); // Reads bytes from the file blocks starting from the handle->position, and stores them in dest. Returns bytes written
+int fs_read(FileHandleEntry handle, void* dest, char* buffer, size_t size); // Reads bytes from the file blocks starting from the handle->position, and stores them in dest. Returns bytes written
 int seek(FileHandleEntry handle, char* buffer, unsigned int position); // Moves the handle->position to the desired position
 
 // Directory functions

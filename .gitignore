@@ -1,5 +1,6 @@
 main
 TODO.txt
+*.img
 
 # VSCode settings
 .vscode/

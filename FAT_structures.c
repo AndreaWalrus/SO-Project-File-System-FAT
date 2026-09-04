@@ -19,7 +19,7 @@ int init_fat(char* buffer){
     for (int i = FAT_SIZE+FILE_ENTRY_BLOCKS; i < BLOCKS_NUM; i++) {
         fat[i] = FAT_FREE; // Set all the remaining blocks as free
     }
-    for(int i = 0; i<BLOCKS_AVAILABLE; i++){ // Inizialize all the file entries fields
+    for(int i = 0; i<BLOCKS_AVAILABLE; i++){ // Initialize all the file entries fields
         FileEntry file = (FileEntry) (buffer+getOffset(i));
         strcpy(file->name,"\0");
         file->start_block=-1;
@@ -356,7 +356,7 @@ int closeFile(FileHandleEntry handle) {
 
 // Data functions
 
-int write(FileHandleEntry handle, char* buffer, const void* data, size_t size){
+int fs_write(FileHandleEntry handle, char* buffer, const void* data, size_t size){
     if(handle == NULL || data == NULL) {
         fflush(stdout);
         fprintf(stderr, "Handle or data is NULL\n");
@@ -430,7 +430,7 @@ int write(FileHandleEntry handle, char* buffer, const void* data, size_t size){
     }
 }
 
-int read(FileHandleEntry handle, void* dest, char* buffer, size_t size){
+int fs_read(FileHandleEntry handle, void* dest, char* buffer, size_t size){
     if(handle == NULL){
         fflush(stdout);
         fprintf(stderr, "Handle is NULL\n");

@@ -1,4 +1,6 @@
 #include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "FAT_structures.h"
 
 int test1();
@@ -11,20 +13,55 @@ int main(int argc, char *argv[]) {
         DEBUG=0;
     }
 
-    // Maps the buffer to simulate memory
+    const char* path = "./FileSystem.img";
+    int exists=1;
 
-    char* buffer = mmap(NULL, BLOCK_SIZE * BLOCKS_NUM, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    // Check if File system image already exists
+
+    int res = open(path, O_RDWR);
+    if(res==-1){
+        exists=0;
+        if(DEBUG) printf("File system image doesn't exists, creating...\n");
+    }else{
+        if(DEBUG) printf("File system image found, loading...\n");
+    }
+
+    // Open File system image
+
+    int fd = open(path, O_RDWR | O_CREAT, 0777);
+    if(fd==-1){
+        fflush(stdin);
+        fprintf(stderr, "open failed: %s\n", strerror(errno));
+        return 1;
+    }
+
+    if(ftruncate(fd, BLOCK_SIZE*BLOCKS_NUM)==-1){ // Truncate to buffer size
+        fflush(stdin);
+        fprintf(stderr, "ftruncate failed: %s\n", strerror(errno));
+        return 1;
+    }
+
+    // Maps the buffer onto the File system file to simulate memory
+
+    char* buffer = mmap(NULL, BLOCK_SIZE * BLOCKS_NUM, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (buffer == MAP_FAILED) {
+        fflush(stdin);
         fprintf(stderr, "mmap failed: %s\n", strerror(errno));
         return 1;
     }
 
     // Initialize the FAT structure
 
-    int fat = init_fat(buffer);
-    if(fat==-1){
-        return -1;
+    if(!exists){
+        int fat = init_fat(buffer);
+        if(fat==-1){
+            return -1;
+        }
     }
+
+    // Main always starts in the Root directory
+
+    current_directory=ROOT_DIR;
 
     if(DEBUG){
         printf("FAT Size: %ld blocks\n", FAT_SIZE);
@@ -114,12 +151,12 @@ int main(int argc, char *argv[]) {
                             continue;
                         }
                         while(token != NULL){
-                            wrote+=write(handle, buffer, token, strlen(token));
-                            wrote+=write(handle, buffer, " ", 1);
+                            wrote+=fs_write(handle, buffer, token, strlen(token));
+                            wrote+=fs_write(handle, buffer, " ", 1);
                             token = strtok(NULL, " \n");
                         }
                         seek(handle, buffer, wrote-1);
-                        write(handle, buffer, "", 1);
+                        fs_write(handle, buffer, "", 1);
                         getFileEntry(handle->file_index, buffer)->size-=2;
                         wrote--;
                         seek(handle, buffer, wrote);
@@ -133,7 +170,7 @@ int main(int argc, char *argv[]) {
                         }
                         size_t size = (size_t) strtoul(command,NULL, 10);
                         char dest[size+1];
-                        int bytes = read(handle, dest, buffer, size);
+                        int bytes = fs_read(handle, dest, buffer, size);
                         if(bytes==-1) continue;
                         memcpy(dest+size, "\0", 1);
                         printf("%s\n", dest);
@@ -217,10 +254,18 @@ int main(int argc, char *argv[]) {
     
     // Cleanup
 
-    munmap(buffer, BLOCK_SIZE * BLOCKS_NUM);
-    if(errno){
-        fprintf(stderr, "munmap error");
-        return -1;
+    res = munmap(buffer, BLOCK_SIZE * BLOCKS_NUM);
+    if(res == -1){
+        fflush(stdin);
+        fprintf(stderr, "munmap error: %s\n", strerror(errno));
+        return 1;
+    }
+
+    res = close(fd);
+    if (res == -1) {
+        fflush(stdin);
+        fprintf(stderr, "close failed: %s\n", strerror(errno));
+        return 1;
     }
 
 
