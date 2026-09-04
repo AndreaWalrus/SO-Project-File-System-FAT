@@ -16,6 +16,8 @@ int test1(){
         return -1;
     }
 
+    current_directory=ROOT_DIR;
+
     printFAT(buffer);
 
     int index = createFile("pippo\0", buffer);
@@ -24,14 +26,14 @@ int test1(){
     createFile("pluto\0", buffer);
     createFile("paperone\0", buffer);
 
-    printFileEntry(buffer);
+    printEntries(buffer);
     
-    eraseFile(find("pluto\0", buffer, 0, 0), buffer);
-    printFileEntry(buffer);
+    eraseFile(getEntry(find("pluto\0", buffer, 0), current_directory->start_block, buffer), buffer);
+    printEntries(buffer);
     printFAT(buffer);
     
     createFile("topolino\0", buffer);
-    printFileEntry(buffer);
+    printEntries(buffer);
 
     FileHandleEntry handle = openFile(index, buffer);
     printFileHandleTable();
@@ -44,7 +46,7 @@ int test1(){
     fs_write(handle, buffer, data, size);
     printFileHandleTable();
     printFAT(buffer);
-    printFileEntry(buffer);
+    printEntries(buffer);
 
     seek(handle, buffer, 0);
     printFileHandleTable();
@@ -57,13 +59,13 @@ int test1(){
         if(i%32==0 && i!=0) printf("\n");
     }
     printf("\n");
-    printFile(find("pippo\0", buffer, 0, 0), buffer);
+    printFile(find("pippo\0", buffer, 0), buffer);
     printFileHandleTable();
     closeFile(handle);
     printFileHandleTable();
 
-    eraseFile(find("pippo\0", buffer, 0, 0), buffer);
-    printFileEntry(buffer);
+    eraseFile(getEntry(find("pippo\0", buffer, 0), current_directory->start_block, buffer), buffer);
+    printEntries(buffer);
 
     listDir(buffer);
     createDir("pippo\0", buffer);
@@ -71,7 +73,7 @@ int test1(){
     changeDir("pippo\0", buffer);
     listDir(buffer);
 
-    printFileEntry(buffer);
+    printEntries(buffer);
 
     // Cleanup
 

@@ -153,14 +153,14 @@ FileEntry getEntry(unsigned int index, fat_entry_t start_block, char* buffer){
     if(start_block < (fat_entry_t)0 || start_block >= (fat_entry_t)BLOCKS_NUM){
         fflush(stdout);
         fprintf(stderr, "Start block invalid\n");
-        return -1;
+        return NULL;
     }
     if(buffer==NULL){
         fflush(stdout);
         fprintf(stderr, "buffer is NULL\n");
         return NULL;
     }
-    return (FileEntry) buffer+(start_block*BLOCK_SIZE)+(FILE_ENTRY_SIZE*index);
+    return (FileEntry) (buffer+(start_block*BLOCK_SIZE)+(FILE_ENTRY_SIZE*index));
 }
 
 int findFreeEntry(char* buffer){ // Returns offset of the first available entry in the current directory

@@ -19,4 +19,4 @@ main: main.o FAT_structures.o test1.o
 	rm -f *.o
 
 clean:
-	rm -f *.o main
+	rm -f *.o main FileSystem.img

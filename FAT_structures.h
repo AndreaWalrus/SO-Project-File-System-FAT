@@ -32,7 +32,7 @@ struct File{
     uint8_t is_used; // 1 if yes, 0 otherwise
     unsigned int size; // in bytes
     unsigned int file_index; // index of the file in the current directory entry list
-    FileEntry parent_dir; // Entry of parent directory
+    struct File* parent_dir; // Entry of parent directory
 };
 
 typedef fat_entry_t *FATEntry;

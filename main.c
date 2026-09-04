@@ -50,6 +50,12 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    if(DEBUG){
+        printf("FAT Size: %ld blocks\n", FAT_SIZE);
+        printf("File entry num: %d blocks\n", FILE_ENTRY_NUM);
+        printf("Sizeof file:%ld\n", sizeof(struct File));
+    }
+
     // Initialize the FAT structure
 
     if(!exists){
@@ -63,20 +69,12 @@ int main(int argc, char *argv[]) {
 
     current_directory=ROOT_DIR;
 
-    if(DEBUG){
-        printf("FAT Size: %ld blocks\n", FAT_SIZE);
-    }
+    
     printf("Main loop, type help for all available commands\n");
 
     // Active loop
     while(1){
-        if(current_directory==-1){
-            printf("root/: ");
-        }
-        else{
-            FileEntry file = getFileEntry(current_directory, buffer);
-            printf("%s/: ", file->name);
-        }
+        printf("%s/: ", current_directory->name);
         
         char input[32];
         fgets(input, 32, stdin);
@@ -239,8 +237,8 @@ int main(int argc, char *argv[]) {
             int res = find(name, buffer, 0);
             if(res>=0) printFile(res,buffer);
         }
-        else if(!strcmp(command, "printFileEntry\0")){
-            printFileEntry(buffer);
+        else if(!strcmp(command, "printEntries\0")){
+            printEntries(buffer);
         }
         else if(!strcmp(command, "printFHT\0")){
             printFileHandleTable();
